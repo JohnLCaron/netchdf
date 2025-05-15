@@ -58,7 +58,7 @@ open-source developers, and hopefully some of them will be willing to keep this 
 
 We are aiming to be within 2x of the C libraries for reading data. Preliminary tests indicate that's a reasonable goal. 
 For HDF5 files using deflate filters, the deflate library dominates the read time, and standard Java deflate libraries 
-are about 2X slower than native code. Unless the deflate libraries get better, theres not much gain in trying to make
+are about 2X slower than native code. Unless the deflate libraries get better, there's not much gain in trying to make
 other parts of the code faster.
 
 Its possible we can use Kotlin coroutines to speed up performance bottlenecks. TBD.
@@ -148,7 +148,7 @@ local to the variable they are referenced by.
 #### Compare with HDF5 data model
 * Creation order is ignored
 * Not including symbolic links in a group, as these point to an existing dataset (variable)
-* Opaque: hdf5 makes arrays of Opaque all the same size, which gives up some of its usefulness. If theres a need,
+* Opaque: hdf5 makes arrays of Opaque all the same size, which gives up some of its usefulness. If there's a need,
   we will allow Opaque(*) indicating that the sizes can vary.
 * Attributes can be of type REFERENCE, with value the full path name of the referenced dataset.
 
