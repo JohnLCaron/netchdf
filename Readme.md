@@ -37,8 +37,8 @@ scientific datasets.
 
 ### Why do we need another library besides the standard reference libraries?
 
-Its necessary to have independent implementations of any standard. If you don't have multiple implementations, its
-easy for the single implementer to mistake the implementation for the actual standard. Its easy to hide problems 
+It's necessary to have independent implementations of any standard. If you don't have multiple implementations, it's
+easy for the single implementer to mistake the implementation for the actual standard. It's easy to hide problems 
 that are actually in the standard by adding work-arounds in the code, instead of documenting problems and creating new
 versions of the standard with clear fixes. For Netcdf/Hdf, the standard is the file formats, along with their semantic 
 descriptions. The API is language and library specific, and is secondary to the standard.
@@ -46,7 +46,7 @@ descriptions. The API is language and library specific, and is secondary to the 
 Having multiple implementations is a huge win for the reference library, in that bugs are more quickly found, and 
 ambiguities more quickly identified. 
 
-### Whats wrong with the standard reference libraries?
+### What's wrong with the standard reference libraries?
 
 The reference libraries are well maintained but complex. They are coded in C, which is a difficult language to master
 and keep bug free, with implications for memory safety and security. The libraries require various machine and OS dependent
@@ -62,7 +62,7 @@ of programmers, and the need to support legacy APIs.
 
 HDF-EOS uses an undocumented "Object Descriptor Language (ODL)" text format, which adds a dependency on the SDP Toolkit 
 and possibly other libraries. These toolkits also provide functionality such as handling projections and coordinate system 
-conversions, and arguably its impossible to process HDF-EOS without them. So the value added here by an independent 
+conversions, and arguably it's impossible to process HDF-EOS without them. So the value added here by an independent 
 library for data access is less clear. For now, we will provide a "best-effort" to expose the internal 
 contents of the file.
 
@@ -106,7 +106,7 @@ Our goal is to give read access to all the content in NetCDF, HDF5, HDF4, and HD
 
 The library will be thread-safe for reading multiple files concurrently.
 
-We are focussing on earth science data, and dont plan to support other uses except as a byproduct.
+We are focussing on earth science data, and don't plan to support other uses except as a byproduct.
 
 The core module will remain pure Kotlin with very minimal dependencies and no write capabilities. In particular, 
 there will be no dependency on the reference C libraries (except for testing). 
@@ -202,7 +202,7 @@ local to the variable they are referenced by.
 
 #### Compare with HDF5 data model
 * Creation order is ignored
-* We dont include soft (aka symbolic) links in a group, as these point to an existing dataset (variable).
+* We don't include soft (aka symbolic) links in a group, as these point to an existing dataset (variable).
 * Opaque: hdf5 makes arrays of Opaque all the same size, which gives up some of its usefulness. If there's a need,
   we will allow Opaque(*) indicating that the sizes can vary.
 * Attributes can be of type REFERENCE, with value the full path name of the referenced dataset.
