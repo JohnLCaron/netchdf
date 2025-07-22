@@ -52,16 +52,16 @@ data class Datatype<T>(val cdlName: String, val size: Int, val typedef : Typedef
         return if (this == VLEN) "$cdlName ${typedef?.baseType?.cdlName}" else cdlName
     }
 
-    val isVlenString = (this == STRING) && (isVlen != null) && isVlen
+    val isVlenString get() = (this == STRING) && (isVlen != null) && isVlen
     // subclass of Number
-    val isNumber = (this == FLOAT) || (this == DOUBLE) || (this == BYTE) || (this == INT) || (this == SHORT) || (this == LONG)
-    val isEnum = (this == ENUM1) || (this == ENUM2) || (this == ENUM4) || (this == ENUM8)
-    val isUnsigned = (this == UBYTE) || (this == USHORT) || (this == UINT) || (this == ULONG) || isEnum
-    val isIntegral = ((this == BYTE) || (this == INT) || (this == SHORT) || (this == LONG)
+    val isNumber get() = (this == FLOAT) || (this == DOUBLE) || (this == BYTE) || (this == INT) || (this == SHORT) || (this == LONG)
+    val isEnum get() = (this == ENUM1) || (this == ENUM2) || (this == ENUM4) || (this == ENUM8)
+    val isUnsigned get() = (this == UBYTE) || (this == USHORT) || (this == UINT) || (this == ULONG) || isEnum
+    val isIntegral get() = ((this == BYTE) || (this == INT) || (this == SHORT) || (this == LONG)
                 || (this == UBYTE) || (this == UINT) || (this == USHORT)
                 || (this == ULONG))
-    val isFloatingPoint = (this == FLOAT) || (this == DOUBLE)
-    val isNumeric = isFloatingPoint || isIntegral
+    val isFloatingPoint get() = (this == FLOAT) || (this == DOUBLE)
+    val isNumeric get() = isFloatingPoint || isIntegral
 
     /**
      * Returns the DataType that is related to `this`, but with the specified signedness.
