@@ -32,7 +32,7 @@ class H5builder(
 ) {
     val raf: OpenFileIF
 
-    private val superblockStart: Long // may be offset for arbitrary metadata
+    val superblockStart: Long // may be offset for arbitrary metadata
     var sizeOffsets: Int = 0
     var sizeLengths: Int = 0
     var sizeHeapId = 0

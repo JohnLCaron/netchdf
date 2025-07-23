@@ -29,7 +29,7 @@ class CountVersions {
         val filenames = mutableMapOf<String, MutableList<String>>()
         val showAllFiles = false
 
-        fun afterAll() {
+        fun showVersions() {
             println("*** nfiles = ${filenames.size}")
             var dups = 0
             filenames.keys.sorted().forEach {
@@ -74,6 +74,58 @@ class CountVersions {
             }
         }
 
-        afterAll()
+        showVersions()
+    }
+
+    @Test
+    fun sortFileSizes() {
+        val fileSizes = mutableMapOf<String, Long>()
+
+        files().forEach { filename ->
+            try {
+                openNetchdfFile(filename).use { ncfile ->
+                    if (ncfile == null) {
+                        println("Not a netchdf file=$filename ")
+                    } else {
+                        fileSizes[filename ] = ncfile.size
+                    }
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
+        }
+
+        val sorted = fileSizes.toList()
+            .sortedBy { (_, value) -> value }
+            .toMap()
+
+        sorted.keys.forEach{ println("${sorted[it]} == $it } files") }
+    }
+
+    @Test
+    fun sortVarSizes() {
+        val varSizes = mutableMapOf<String, Long>()
+
+        files().forEach { filename ->
+            try {
+                openNetchdfFile(filename).use { ncfile ->
+                    if (ncfile == null) {
+                        println("Not a netchdf file=$filename ")
+                    } else {
+                        ncfile.rootGroup().allVariables().forEach { v ->
+                            varSizes["$filename#${v.name}" ] = v.nelems
+                        }
+                    }
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
+        }
+
+        val sorted = varSizes.toList()
+            .sortedBy { (_, value) -> value }
+            .toMap()
+
+        sorted.keys.forEach{ println("${sorted[it]} == $it } files") }
     }
 }

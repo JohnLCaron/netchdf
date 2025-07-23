@@ -4,7 +4,7 @@ import com.sunya.cdm.layout.IndexSpace
 import com.sunya.cdm.layout.IndexND
 import com.sunya.cdm.layout.Tiling
 
-/** wraps BTree1 and BTree2 to handle iterating through tiled data (aka chunked data) */
+/** wraps BTree1 to handle iterating through tiled data (aka chunked data) */
 internal class H5TiledData1(val btree : BTree1, val varShape: LongArray, val chunkShape: LongArray) {
     private val check = true
     private val debug = false

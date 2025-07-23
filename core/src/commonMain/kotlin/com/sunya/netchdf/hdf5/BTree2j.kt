@@ -98,10 +98,6 @@ internal class BTree2j(private val h5: H5builder, owner: String, address: Long, 
                 readRecords(childAddress, depth - 1, numberOfChildRecords, totalNumberOfChildRecords)
             }
         }
-
-        // 		bb.limit(bb.position() + 4);
-        //		bb.rewind();
-        //		ChecksumUtils.validateChecksum(bb);
     }
 
     // heroic jhdf

@@ -6,38 +6,38 @@ import kotlin.math.min
 /**
  * A Tiling divides a multidimensional index space into tiles.
  * Indices are points in the original multidimensional index space.
- * Tiles are points in the tiled space.
+ * Tiles are points in the "tiled space" ~ varShape / chunkShape
  * Each tile has the same index size, given by chunk.
  *
  * Allows to efficiently find the data chunks that cover an arbitrary section of the variable's index space.
  *
- * @param varshape the variable's shape
- * @param chunk  actual data storage has this shape. May be larger than the shape, last dim ignored if rank > varshape.
+ * @param varShape the variable's shape
+ * @param chunkShape  actual data storage has this shape. May be larger than the shape, last dim ignored if rank > varshape.
  */
-class Tiling(varshape: LongArray, chunkIn: LongArray) {
-    val chunk = chunkIn.copyOf()
+class Tiling(varShape: LongArray, chunkShape: LongArray) {
+    val chunk = chunkShape.copyOf()
     val rank: Int
     val tileShape : LongArray // overall shape of the dataset's tile space
-    private val indexShape : LongArray // overall shape of the dataset's index space - may be larger than actual variable shape
-    private val strider : LongArray // for computing tile index
+    val indexShape : LongArray // overall shape of the dataset's index space - may be larger than actual variable shape
+    val tileStrider : LongArray // for computing tile index
 
     init {
         // convenient to allow tileSize to have (an) extra dimension at the end
         // to accommodate hdf5 storage, which has the element size
-        require(varshape.size <= chunk.size)
-        rank = varshape.size
+        require(varShape.size <= chunk.size)
+        rank = varShape.size
         this.indexShape = LongArray(rank)
         for (i in 0 until rank) {
-            this.indexShape[i] = max(varshape[i], chunk[i])
+            this.indexShape[i] = max(varShape[i], chunk[i])
         }
         this.tileShape = LongArray(rank)
         for (i in 0 until rank) {
             tileShape[i] = (this.indexShape[i] + chunk[i] - 1) / chunk[i]
         }
-        strider = LongArray(rank)
+        tileStrider = LongArray(rank)
         var accumStride = 1L
         for (k in rank - 1 downTo 0) {
-            strider[k] = accumStride
+            tileStrider[k] = accumStride
             accumStride *= tileShape[k]
         }
     }
@@ -57,25 +57,41 @@ class Tiling(varshape: LongArray, chunkIn: LongArray) {
         return tile
     }
 
-    /** Compute the minimum index of a tile, inverse of tile().
+    /** Compute the left upper index of a tile, inverse of tile().
      * This will match a key in the datachunk btree, up to rank dimensions */
     fun index(tile: LongArray): LongArray {
         return LongArray(rank) { idx -> tile[idx] * chunk[idx] }
     }
 
     /**
-     * Get order based on which tile the pt belongs to
-     * LOOK you could do this without using the tile
+     * Get order based on which tile the index pt belongs to.
+     * This is the linear ordering of the tile.
      *
-     * @param pt index point
+     * @param index index point
      * @return order number based on which tile the pt belongs to
      */
-    fun order(pt: LongArray): Long {
-        val tile = tile(pt)
+    fun order(index: LongArray): Long {
+        val tile = tile(index)
         var order = 0L
-        val useRank = min(rank, pt.size) // eg varlen (datatype 9) has mismatch
-        for (i in 0 until useRank) order += strider[i] * tile[i]
+        val useRank = min(rank, index.size) // eg varlen (datatype 9) has mismatch
+        for (i in 0 until useRank) order += tileStrider[i] * tile[i]
         return order
+    }
+
+    /** inverse of order() */
+    fun orderToIndex(order: Long) : LongArray {
+        // calculate tile
+        val tile = LongArray(rank)
+        var rem = order
+
+        for (k in 0 until rank) {
+            tile[k] = rem / tileStrider[k]
+            rem = rem - (tile[k] * tileStrider[k])
+        }
+        print("tile $order = ${tile.contentToString()}")
+
+        // convert to index
+        return index(tile)
     }
 
     /**

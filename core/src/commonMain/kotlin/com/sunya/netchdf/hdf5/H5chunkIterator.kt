@@ -2,6 +2,7 @@ package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.api.*
 import com.sunya.cdm.array.ArrayTyped
+import com.sunya.cdm.iosp.OpenFileIF
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.layout.Chunker
 import com.sunya.cdm.layout.IndexSpace
@@ -9,7 +10,7 @@ import com.sunya.cdm.layout.transferMissingNelems
 import com.sunya.cdm.util.InternalLibraryApi
 
 // TODO assumes BTree1, could it include BTree2? any chunked reader ?
-//   only used in Netchdf.chunkConcurrent
+//   only used in Netchdf.readChunksConcurrent
 
 @OptIn(InternalLibraryApi::class)
 internal class H5chunkIterator<T>(val h5 : H5builder, val v2: Variable<T>, val wantSection : Section) : AbstractIterator<ArraySection<T>>() {
@@ -31,8 +32,8 @@ internal class H5chunkIterator<T>(val h5 : H5builder, val v2: Variable<T>, val w
         elemSize = vinfo.storageDims[vinfo.storageDims.size - 1].toInt() // last one is always the elements size
         datatype = h5type.datatype()
 
-        val btreeNew = BTree1(h5, vinfo.dataPos, 1, vinfo.storageDims.size)
-        tiledData = H5TiledData1(btreeNew, v2.shape, vinfo.storageDims)
+        val btree1 = BTree1(h5, vinfo.dataPos, 1, vinfo.storageDims.size)
+        tiledData = H5TiledData1(btree1, v2.shape, vinfo.storageDims)
         filters = FilterPipeline(v2.name, vinfo.mfp, h5type.isBE)
         if (debugChunking) println(" H5chunkIterator tiles=${tiledData.tiling}")
 
@@ -85,5 +86,28 @@ internal class H5chunkIterator<T>(val h5 : H5builder, val v2: Variable<T>, val w
         }
 
         return ArraySection(array, intersectSpace.section(v2.shape)) // LOOK use space instead of Section ??
+    }
+}
+
+// for H5readConcurrent
+class OpenFileExtended(val delegate: OpenFileIF,
+                       val isLengthLong: Boolean,
+                       val isOffsetLong: Boolean,
+                       val startingOffset: Long, ) : OpenFileIF by delegate {
+
+    fun readLength(state : OpenFileState): Long {
+        return if (isLengthLong) delegate.readLong(state) else delegate.readInt(state).toLong()
+    }
+
+    fun readOffset(state : OpenFileState): Long {
+        return if (isOffsetLong) delegate.readLong(state) else delegate.readInt(state).toLong()
+    }
+
+    fun getFileOffset(address: Long): Long {
+        return startingOffset + address
+    }
+
+    fun readAddress(state : OpenFileState): Long {
+        return getFileOffset(readOffset(state))
     }
 }

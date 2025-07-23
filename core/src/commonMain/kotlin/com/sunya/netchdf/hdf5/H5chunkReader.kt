@@ -73,12 +73,12 @@ internal class H5chunkReader(val h5 : H5builder) {
         }
         val ba = ByteArray(sizeBytes.toInt())
 
-        val btree = if (vinfo.mdl is DataLayoutBTreeVer1)
+        val btree1 = if (vinfo.mdl is DataLayoutBTreeVer1)
             BTree1(h5, vinfo.dataPos, 1, vinfo.storageDims.size)
         else
             throw RuntimeException("Unsupprted mdl ${vinfo.mdl}")
 
-        val tiledData = H5TiledData1(btree, v2.shape, vinfo.storageDims)
+        val tiledData = H5TiledData1(btree1, v2.shape, vinfo.storageDims)
         val filters = FilterPipeline(v2.name, vinfo.mfp, vinfo.h5type.isBE)
         if (debugChunking) println(" readChunkedData tiles=${tiledData.tiling}")
 

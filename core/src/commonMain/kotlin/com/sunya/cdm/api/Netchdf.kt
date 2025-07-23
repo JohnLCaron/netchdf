@@ -18,6 +18,7 @@ interface Netchdf : AutoCloseable {
     // TODO I think the output type is not always the input type
     fun <T> readArrayData(v2: Variable<T>, section: SectionPartial? = null) : ArrayTyped<T>
 
+    // iterate over all the chunks in section, order is arbitrary.
     fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial? = null, maxElements : Int? = null) : Iterator<ArraySection<T>>
 }
 
@@ -25,8 +26,11 @@ interface Netchdf : AutoCloseable {
 data class ArraySection<T>(val array : ArrayTyped<T>, val section : Section)
 
 // Experimental: read concurrently chunks of data, call back with lamda, order is arbitrary.
-fun <T> Netchdf.chunkConcurrent(v2: Variable<T>, section: SectionPartial? = null, maxElements : Int? = null, nthreads: Int = 20,
-                                lamda : (ArraySection<T>) -> Unit) {
+fun <T> Netchdf.readChunksConcurrent(v2: Variable<T>,
+                                     section: SectionPartial? = null,
+                                     maxElements : Int? = null,
+                                     nthreads: Int = 20,
+                                     lamda : (ArraySection<T>) -> Unit) {
     val reader = ReadChunkConcurrent()
     val chunkIter = this.chunkIterator( v2, section, maxElements)
     reader.readChunks(nthreads, chunkIter, lamda)

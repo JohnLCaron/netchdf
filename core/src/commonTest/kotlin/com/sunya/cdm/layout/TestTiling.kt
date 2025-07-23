@@ -1,12 +1,89 @@
 package com.sunya.cdm.layout
 
 import com.sunya.cdm.api.TestSection
+import com.sunya.cdm.api.computeSize
 import kotlin.test.*
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /** Test [com.sunya.cdm.layout.Tiling]  */
 class TestTiling {
+
+    @Test
+    fun basics() {
+        val varshape = longArrayOf(4, 6, 20)
+        val chunk = longArrayOf(1, 3, 20)
+        val tiling = Tiling(varshape, chunk)
+
+        assertEquals(3, tiling.rank) // max(var, chunk)
+        checkEquals(longArrayOf(4, 6, 20), tiling.indexShape) // max(var, chunk)
+        checkEquals(longArrayOf(4, 2, 1), tiling.tileShape)   // indexShape / chunk
+        checkEquals(longArrayOf(2, 1, 1), tiling.tileStrider)   // accumStride *= tileShape[k]
+
+        val tiling2 = Tiling(longArrayOf(10, 100, 1000),
+                           longArrayOf(2, 4, 20))
+
+        assertEquals(3, tiling2.rank) // max(var, chunk)
+        checkEquals(longArrayOf(10, 100, 1000), tiling2.indexShape) // max(var, chunk)
+        checkEquals(longArrayOf(5, 25, 50), tiling2.tileShape)   // indexShape / chunk
+        checkEquals(longArrayOf(1250, 50, 1), tiling2.tileStrider)   // accumStride *= tileShape[k]
+    }
+
+    @Test
+    fun uneven() {
+        val varshape = longArrayOf(4, 6, 25)
+        val chunk = longArrayOf(1, 3, 20)
+        val tiling = Tiling(varshape, chunk)
+
+        assertEquals(3, tiling.rank)
+        checkEquals(longArrayOf(4, 6, 25), tiling.indexShape) // max(var, chunk)
+        checkEquals(longArrayOf(4, 2, 2), tiling.tileShape) // indexShape / chunk
+        checkEquals(longArrayOf(4, 2, 1), tiling.tileStrider) // accumStride *= tileShape[k]
+    }
+
+    @Test
+    fun chunkbigger() {
+        val varshape = longArrayOf(4, 6, 20)
+        val chunk = longArrayOf(1, 3, 22)
+        val tiling = Tiling(varshape, chunk)
+
+        assertEquals(3, tiling.rank)
+        checkEquals(longArrayOf(4, 6, 22), tiling.indexShape) // max(var, chunk)
+        checkEquals(longArrayOf(4, 2, 1), tiling.tileShape) // indexShape / chunk
+        checkEquals(longArrayOf(2, 1, 1), tiling.tileStrider) // accumStride *= tileShape[k]
+    }
+
+    @Test
+    fun chunkextradim() {
+        val varshape = longArrayOf(4, 6, 20)
+        val chunk = longArrayOf(1, 3, 22, 12)
+        val tiling = Tiling(varshape, chunk)
+
+        assertEquals(3, tiling.rank)
+        checkEquals(longArrayOf(4, 6, 22), tiling.indexShape) // max(var, chunk)
+        checkEquals(longArrayOf(4, 2, 1), tiling.tileShape) // indexShape / chunk
+        checkEquals(longArrayOf(2, 1, 1), tiling.tileStrider) // accumStride *= tileShape[k]
+    }
+
+    @Test
+    fun testOrder() {
+        val varshape = longArrayOf(4, 6, 20)
+        val chunk = longArrayOf(1, 3, 5)
+        val tiling = Tiling(varshape, chunk)
+
+        assertEquals(3, tiling.rank) // max(var, chunk)
+        checkEquals(longArrayOf(4, 6, 20), tiling.indexShape) // max(var, chunk)
+        checkEquals(longArrayOf(4, 2, 4), tiling.tileShape)   // indexShape / chunk
+        checkEquals(longArrayOf(8, 4, 1), tiling.tileStrider)   // accumStride *= tileShape[k]
+
+        val ntiles = tiling.tileShape.computeSize()
+
+        for (order in 0 until ntiles) {
+            val index = tiling.orderToIndex(order)
+            println(" index $order = ${index.contentToString()}")
+            assertEquals( order, tiling.order(index))
+        }
+    }
 
     @Test
     fun testTiling() {

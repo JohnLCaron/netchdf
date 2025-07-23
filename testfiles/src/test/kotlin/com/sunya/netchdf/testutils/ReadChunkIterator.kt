@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 //////////////////////////////////////////////////////////////////////////////////////
 // compare reading data regular and through the chunkIterate API
 
-fun compareNetchIterate(filename: String, varname : String? = null, compare : Boolean = true) {
+fun compareChunkReading(filename: String, varname : String? = null, compare : Boolean = true) {
     openNetchdfFile(filename).use { myfile ->
         if (myfile == null) {
             println("*** not a netchdf file = $filename")
@@ -21,10 +21,10 @@ fun compareNetchIterate(filename: String, varname : String? = null, compare : Bo
         var countChunks = 0
         if (varname != null) {
             val myvar = myfile.rootGroup().allVariables().find { it.fullname() == varname } ?: throw RuntimeException("cant find $varname")
-            countChunks +=  compareOneVarIterate(myfile, myvar, compare)
+            countChunks +=  compareChunkReadingForVar(myfile, myvar, compare)
         } else {
             myfile.rootGroup().allVariables().forEach { it ->
-                countChunks += compareOneVarIterate(myfile, it, compare)
+                countChunks += compareChunkReadingForVar(myfile, it, compare)
             }
         }
         if (countChunks > 0) {
@@ -34,7 +34,7 @@ fun compareNetchIterate(filename: String, varname : String? = null, compare : Bo
 }
 
 // compare readArrayData with chunkIterator
-private fun compareOneVarIterate(myFile: Netchdf, myvar: Variable<*>, compare : Boolean = true) : Int {
+private fun compareChunkReadingForVar(myFile: Netchdf, myvar: Variable<*>, compare : Boolean = true) : Int {
     val filename = myFile.location().substringAfterLast('/')
     val varBytes = myvar.nelems
     if (varBytes >= maxBytes) {
@@ -42,25 +42,22 @@ private fun compareOneVarIterate(myFile: Netchdf, myvar: Variable<*>, compare : 
         return 0
     }
 
-    val sum1 = AtomicDouble(0.0)
+    val sumReadArray = AtomicDouble(0.0)
     val sumArrayData = if (compare) {
         val time3 = measureNanoTime {
             val arrayData = myFile.readArrayData(myvar, null)
-            sumValues(arrayData, sum1)
+            sumValues(arrayData, sumReadArray)
         }
         Stats.of("readArrayData", filename, "chunk").accum(time3, 1)
-        sum1.get()
+        sumReadArray.get()
     } else 0.0
 
     val sum2 = AtomicDouble(0.0)
     var countChunks = 0
     val time1 = measureNanoTime {
-        val chunkIter = myFile.chunkIterator(myvar)
-        for (pair in chunkIter) {
-            // println(" ${pair.section} = ${pair.array.shape.contentToString()}")
-            sumValues(pair.array, sum2)
+        myFile.readChunksConcurrent(myvar, null) {
             countChunks++
-        }
+            sumValues(it.array, sum2) }
     }
     val sumChunkIterator = sum2.get()
     if (compare) Stats.of("chunkIterator", filename, "chunk").accum(time1, countChunks)
