@@ -45,7 +45,6 @@ class H5readConcurrentTest {
         }
     }
 
-
     @Test
     fun testH5readConcurrent() {
         val filename = "/home/all/testdata/cdmUnitTest/formats/netcdf4/hiig_forec_20140208.nc"

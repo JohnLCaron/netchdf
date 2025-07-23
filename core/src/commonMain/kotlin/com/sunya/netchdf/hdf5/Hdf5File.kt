@@ -31,6 +31,11 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
     override fun type() = header.formatType()
     override val size : Long get() = raf.size()
 
+    fun layoutName(v: Variable<*>): String {
+        val vinfo = (v.spObject as DataContainerVariable)
+        return if (vinfo.mdl != null) vinfo.mdl.javaClass.simpleName else "none"
+    }
+
     override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
         if (v2.nelems == 0L) {
             return ArrayEmpty(v2.shape.toIntArray(), v2.datatype)

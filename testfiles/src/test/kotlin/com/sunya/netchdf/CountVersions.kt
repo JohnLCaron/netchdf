@@ -1,5 +1,6 @@
 package com.sunya.netchdf
 
+import com.sunya.netchdf.hdf5.Hdf5File
 import com.sunya.netchdf.testfiles.H4Files
 import com.sunya.netchdf.testfiles.H5Files
 import com.sunya.netchdf.testfiles.JhdfFiles
@@ -112,8 +113,13 @@ class CountVersions {
                     if (ncfile == null) {
                         println("Not a netchdf file=$filename ")
                     } else {
+                        val hdf5File = if (ncfile.type() in listOf("netcdf4", "hdf")) {
+                            ncfile as Hdf5File
+                        } else null
+
                         ncfile.rootGroup().allVariables().forEach { v ->
-                            varSizes["$filename#${v.name}" ] = v.nelems
+                            val layout = hdf5File?.layoutName(v) ?: ""
+                            varSizes["$filename#${v.name}#$layout"] = v.nelems
                         }
                     }
                 }
