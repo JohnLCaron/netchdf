@@ -101,7 +101,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         }
     }
 
-    // Netchdf.chunkConcurrent
+    // for Netchdf.readChunksConcurrent
     override fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial?, maxElements : Int?) : Iterator<ArraySection<T>> {
         if (v2.nelems == 0L) {
             return listOf<ArraySection<T>>().iterator()
@@ -115,6 +115,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
             return listOf(single).iterator()
         }
 
+        // TODO
         return if (vinfo.mdl is DataLayoutBTreeVer1) {
             H5chunkIterator(header, v2, wantSection)
         } else {
