@@ -6,7 +6,6 @@ import com.sunya.netchdf.openNetchdfFile
 import com.sunya.netchdf.openNetchdfFileWithFormat
 import com.sunya.netchdf.testfiles.H4Files
 import com.sunya.netchdf.testutils.Stats
-import com.sunya.netchdf.testutils.compareNetchIterate
 import com.sunya.netchdf.testutils.readNetchdfData
 import com.sunya.netchdf.testutils.testData
 import org.junit.jupiter.params.ParameterizedTest
@@ -121,10 +120,10 @@ class H4readTest {
         }
     }
 
-    // takes too long : 47 hours with, 2 hours without (luckily get to divide by 24 for wall clock)
+    /* takes too long : 47 hours with, 2 hours without (luckily get to divide by 24 for wall clock)
     // @Test
     fun testReadIterate(filename: String) {
         compareNetchIterate(filename)
-    }
+    } */
 
 }
