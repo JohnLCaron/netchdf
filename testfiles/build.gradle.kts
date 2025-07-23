@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     api(project(":core"))
-    implementation(project(":cli"))
+    // implementation(project(":cli"))
 
     implementation(libs.jhdf)
     implementation(libs.kotlinx.coroutines.core)

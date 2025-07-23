@@ -1,7 +1,6 @@
 package com.sunya.netchdf.hdf5
 
 import com.sunya.netchdf.testfiles.H5Files
-import com.sunya.netchdf.testutils.Stats
 import com.sunya.netchdf.testutils.readNetchdfData
 import com.sunya.netchdf.testutils.testData
 import org.junit.jupiter.params.ParameterizedTest
@@ -12,18 +11,10 @@ import kotlin.test.*
 // Sanity check read Hdf5File header, for non-netcdf4 files
 class H5readTest {
 
-    init {
-        Stats.clear() // problem with concurrent tests
-    }
-
     companion object {
         @JvmStatic
         fun files(): Iterator<String> {
             return H5Files.files()
-        }
-
-        fun afterAll() {
-            Stats.show()
         }
     }
 

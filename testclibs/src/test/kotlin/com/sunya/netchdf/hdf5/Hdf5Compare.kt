@@ -15,11 +15,11 @@ import kotlin.test.assertTrue
 class Hdf5Compare {
 
     companion object {
-        @JvmStatic
         fun files(): Iterator<String> {
-            // 10 of 114 fail, because we compare with netcdf4 instead of hdf5 c library
-
-            return H5Files.files()
+            return sequenceOf(
+                N4Files.files().asSequence(),
+                H5Files.files().asSequence(),
+            ).flatten().iterator()
         }
     }
 
@@ -50,6 +50,67 @@ class Hdf5Compare {
         CompareCdmWithClib(filename, showCdl = true)
         compareDataWithClib(filename)
     }
+
+    // a compound with a member thats a type thats not a seperate typedef.
+    // the obvious thing to do is to be able to add a typedef when processing the member.
+    // or look for it when building H5group
+    @Test
+    fun compoundEnumTypedef() {
+        CompareCdmWithClib(testData + "devcdm/hdf5/enumcmpnd.h5")
+    }
+
+    @Test
+    fun vlenData() {
+        CompareCdmWithClib(testData + "devcdm/netcdf4/tst_vlen_data.nc4")
+        compareDataWithClib(testData + "devcdm/netcdf4/tst_vlen_data.nc4")
+    }
+
+    @Test
+    fun compoundData() {
+        CompareCdmWithClib(testData + "devcdm/netcdf4/tst_compounds.nc4")
+        compareDataWithClib(testData + "devcdm/netcdf4/tst_compounds.nc4")
+    }
+
+    @Test
+    fun stringData() {
+        CompareCdmWithClib(testData + "devcdm/netcdf4/tst_strings.nc")
+        compareDataWithClib(testData + "devcdm/netcdf4/tst_strings.nc")
+    }
+
+    @Test
+    fun opaqueAttribute() {
+        CompareCdmWithClib(testData + "devcdm/netcdf4/tst_opaque_data.nc4")
+    }
+
+    @Test
+    fun testIterateDataSumInfinite() {
+        CompareCdmWithClib(testData + "cdmUnitTest/formats/hdf5/StringsWFilter.h5")
+        compareDataWithClib(testData + "cdmUnitTest/formats/hdf5/StringsWFilter.h5", varname = "/observation/matrix/data")
+    }
+
+    @Test
+    fun vlstra() {
+        CompareCdmWithClib(testData + "devcdm/hdf5/vlstra.h5")
+    }
+
+    //// the following wont work opening as netcdf
+    @Test
+    fun notNetcdf() {
+        CompareCdmWithClib(testData + "devcdm/hdf5/compound_complex.h5", showCdl = true)
+        CompareCdmWithClib(testData + "devcdm/hdf5/bitfield.h5", showCdl = true)
+        CompareCdmWithClib(testData + "devcdm/hdf5/SDS_array_type.h5", showCdl = true)
+    }
+
+    @Test
+    fun privateTypedef() {
+        CompareCdmWithClib(testData + "devcdm/hdf5/bitop.h5", showCdl = true)
+    }
+
+    @Test
+    fun problemCompareCdl() {
+        CompareCdmWithClib(testData + "devcdm/netcdf4/testNestedStructure.nc", showCdl = true)
+    }
+
 
     ////////////////////////////////////////////////////////////////////
 

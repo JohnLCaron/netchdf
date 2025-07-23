@@ -3,6 +3,7 @@ package com.sunya.netchdf.jhdf
 
 import com.sunya.cdm.util.Indent
 import com.sunya.netchdf.hdf5.*
+// import com.sunya.netchdf.hdf5filters.*
 import com.sunya.netchdf.testfiles.JhdfFiles
 import com.sunya.netchdf.testfiles.jhdfTestDir
 import com.sunya.netchdf.testutils.readNetchdfData
@@ -27,11 +28,11 @@ class JhdfShow {
         }
     }
 
-    init {
+/*    init {
         FilterRegistrar.registerFilter(Lz4Filter())
         FilterRegistrar.registerFilter(LzfFilter())
         FilterRegistrar.registerFilter(BitShuffleFilter())
-    }
+    } */
 
     @Test
     fun showJhdfData() {

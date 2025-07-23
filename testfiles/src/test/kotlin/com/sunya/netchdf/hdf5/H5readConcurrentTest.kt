@@ -8,8 +8,9 @@ import com.sunya.netchdf.testfiles.H5Files
 import com.sunya.netchdf.testutils.AtomicDouble
 import com.sunya.netchdf.testutils.Stats
 import com.sunya.netchdf.testutils.compareNetchIterate
-import com.sunya.netchdf.testutils.measureNanoTime
+import com.sunya.netchdf.testutils.testData
 import kotlin.collections.iterator
+import kotlin.system.measureNanoTime
 
 import kotlin.test.*
 
@@ -21,6 +22,11 @@ class H5readConcurrentTest {
         fun files(): Iterator<String> {
             return H5Files.files()
         }
+    }
+
+    @Test
+    fun problemWrf() {
+        readH5concurrent(testData + "cdmUnitTest/formats/hdf5/wrf/wrf_out_par.h5")
     }
 
     @Test

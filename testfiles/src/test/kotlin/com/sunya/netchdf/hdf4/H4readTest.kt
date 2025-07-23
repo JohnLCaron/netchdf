@@ -5,7 +5,6 @@ import com.sunya.netchdf.NetchdfFileFormat
 import com.sunya.netchdf.openNetchdfFile
 import com.sunya.netchdf.openNetchdfFileWithFormat
 import com.sunya.netchdf.testfiles.H4Files
-import com.sunya.netchdf.testutils.Stats
 import com.sunya.netchdf.testutils.readNetchdfData
 import com.sunya.netchdf.testutils.testData
 import org.junit.jupiter.params.ParameterizedTest
@@ -15,21 +14,10 @@ import kotlin.test.assertEquals
 
 class H4readTest {
 
-    init {
-        Stats.Companion.clear() // problem with concurrent tests
-    }
-
     companion object {
         @JvmStatic
         fun files(): Iterator<String> {
-            return H4Files.Companion.files()
-        }
-
-        fun afterAll() {
-            if (versions.size > 0) {
-                versions.keys.forEach{ println("$it = ${versions[it]!!.size } files") }
-            }
-            Stats.Companion.show()
+            return H4Files.files()
         }
 
         private val versions = mutableMapOf<String, MutableList<String>>()
@@ -37,7 +25,9 @@ class H4readTest {
 
     @Test
     fun problem() {
-        readOneH4header(testData + "devcdm/hdfeos2/MISR_AM1_GP_GMP_P040_O003734_05.eos")
+        val filename = testData + "devcdm/hdfeos2/MISR_AM1_GP_GMP_P040_O003734_05.eos"
+        readOneH4header(filename)
+        readNetchdfData(filename, null, null, true)
     }
 
     @Test
@@ -95,14 +85,6 @@ class H4readTest {
         }
     }
 
-    // not needed - done in netchdfTest
-    // 2 hours with, 1 hour 12 min without (luckily get to divide by 24 for wall clock)
-    // @Test
-    fun readData(filename: String) {
-        readNetchdfData(filename, null, null, true)
-           println()
-    }
-
     // somehow this isnt working anymore alltags not getting set ??
     //@Test
     @OptIn(InternalLibraryApi::class)
@@ -119,11 +101,5 @@ class H4readTest {
             }
         }
     }
-
-    /* takes too long : 47 hours with, 2 hours without (luckily get to divide by 24 for wall clock)
-    // @Test
-    fun testReadIterate(filename: String) {
-        compareNetchIterate(filename)
-    } */
 
 }

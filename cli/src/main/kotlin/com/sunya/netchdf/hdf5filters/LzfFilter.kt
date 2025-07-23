@@ -1,7 +1,8 @@
-package com.sunya.netchdf.hdf5
+package com.sunya.netchdf.hdf5filters
 
 import com.ning.compress.lzf.LZFException
 import com.ning.compress.lzf.util.ChunkDecoderFactory
+import com.sunya.netchdf.hdf5.H5filterIF
 
 class LzfFilter() : H5filterIF {
     override fun id() = 32000

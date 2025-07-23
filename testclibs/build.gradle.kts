@@ -5,8 +5,6 @@ plugins {
 dependencies {
     implementation(project(":core"))
     implementation(project(":testfiles"))
-    // implementation(project(":cli"))
-    //implementation(files("/home/stormy/dev/github/netcdf/netchdf/cli/build/libs/cli.jar"))
 
     implementation(libs.okio)
     implementation(libs.fleeksoft)

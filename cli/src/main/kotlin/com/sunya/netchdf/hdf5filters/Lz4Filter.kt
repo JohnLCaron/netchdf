@@ -1,5 +1,8 @@
-package com.sunya.netchdf.hdf5
+package com.sunya.netchdf.hdf5filters
 
+import com.sunya.netchdf.hdf5.H5filterIF
+import com.sunya.netchdf.hdf5.makeIntFromBEBytes
+import com.sunya.netchdf.hdf5.makeLongFromBEBytes
 import net.jpountz.lz4.LZ4Factory
 import kotlin.math.min
 
