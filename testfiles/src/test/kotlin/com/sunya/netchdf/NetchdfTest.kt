@@ -3,7 +3,6 @@ package com.sunya.netchdf
 import com.sunya.cdm.api.*
 import com.sunya.netchdf.testfiles.*
 import com.sunya.netchdf.testutils.Stats
-import com.sunya.netchdf.testutils.compareNetchIterate
 import com.sunya.netchdf.testutils.readNetchdfData
 import com.sunya.netchdf.testutils.showNetchdfHeader
 import com.sunya.netchdf.testutils.testData
@@ -125,9 +124,9 @@ class NetchdfTest {
         readNetchdfData(filename)
     }
 
-    // TODO too slow
+    /* TODO too slow
     // @Test
     fun testReadNetchIterate(filename: String) {
         compareNetchIterate(filename)
-    }
+    } */
 }
