@@ -7,12 +7,10 @@ dependencies {
 
     implementation(libs.lzf)
     implementation(libs.lz4)
-    // implementation(libs.kotlinx.cli)
     implementation(libs.oshai.logging)
     implementation(libs.logback.classic)
 
     testImplementation(kotlin("test"))
-    // testImplementation(libs.junit.jupiter.params)
 }
 
 kotlin {
@@ -34,3 +32,5 @@ tasks.register<Jar>("uberJar") {
         configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
     })
 }
+
+project.tasks["compileJava"].dependsOn(":core:allMetadataJar")
