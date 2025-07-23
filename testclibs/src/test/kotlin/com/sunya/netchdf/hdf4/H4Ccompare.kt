@@ -7,7 +7,6 @@ import com.sunya.cdm.util.InternalLibraryApi
 import com.sunya.netchdf.*
 import com.sunya.netchdf.hdf4Clib.Hdf4ClibFile
 import com.sunya.netchdf.testfiles.H4Files
-import com.sunya.netchdf.testutils.Stats
 import com.sunya.netchdf.testutils.testData
 import kotlin.test.*
 
@@ -16,13 +15,6 @@ class H4Ccompare {
     companion object {
         fun files(): Iterator<String> {
             return H4Files.files()
-        }
-
-        fun afterAll() {
-            if (versions.size > 0) {
-                versions.keys.forEach { println("$it = ${versions[it]!!.size} files") }
-            }
-            Stats.show()
         }
 
         private val versions = mutableMapOf<String, MutableList<String>>()
@@ -135,12 +127,6 @@ class H4Ccompare {
         compareData(testData + "devcdm/hdf4/TOVS_BROWSE_MONTHLY_AM_B861001.E861031_NF.HDF", "Raster_Image_#0")
     }
 
-    @Test
-    fun problemReadData() {
-        val filename = testData + "/devcdm/hdfeos2/MISR_AM1_GP_GMP_P040_O003734_05.eos"
-        readNetchdfData(filename, null, null, true)
-    }
-
     //////////////////////////////////////////////////////////////////////
 
     @Test
@@ -247,13 +233,6 @@ class H4Ccompare {
     fun readCharDataCompareAll() {
         files().forEach { filename ->
             compareSelectedDataWithClib(filename) { it.datatype == Datatype.CHAR } //  || it.datatype == Datatype.STRING }
-        }
-    }
-
-    //@Test
-    fun testIterateWithClib() {
-        files().forEach { filename ->
-            compareIterateWithClib(filename)
         }
     }
 }

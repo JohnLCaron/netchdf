@@ -5,6 +5,7 @@ import com.sunya.cdm.array.*
 import com.sunya.cdm.util.nearlyEquals
 import com.sunya.netchdf.openNetchdfFile
 import kotlin.collections.iterator
+import kotlin.system.measureNanoTime
 import kotlin.test.assertTrue
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -163,8 +164,5 @@ private fun sumValues(array : ArrayTyped<*>, sum : AtomicDouble) {
     }
 }
 
-fun measureNanoTime (block: () -> Unit): Long {
-    return 0
-}
 
 

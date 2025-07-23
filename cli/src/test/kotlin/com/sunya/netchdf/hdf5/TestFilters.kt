@@ -1,6 +1,9 @@
 package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.api.computeSize
+import com.sunya.netchdf.hdf5filters.BitShuffleFilter
+import com.sunya.netchdf.hdf5filters.Lz4Filter
+import com.sunya.netchdf.hdf5filters.LzfFilter
 import com.sunya.netchdf.openNetchdfFile
 import kotlin.test.Test
 

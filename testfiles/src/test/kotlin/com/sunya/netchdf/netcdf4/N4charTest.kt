@@ -1,6 +1,7 @@
 package com.sunya.netchdf.netcdf4
 
 import com.sunya.cdm.api.Datatype
+import com.sunya.cdm.array.ArrayString
 import com.sunya.cdm.array.ArrayUByte
 import com.sunya.cdm.array.makeStringsFromBytes
 import com.sunya.netchdf.openNetchdfFile
@@ -33,7 +34,7 @@ class N4charTest {
     }
 
     @Test
-    fun testCharVariable() {
+    fun testCharVariableIsString() {
         val filename = testData + "cdmUnitTest/formats/netcdf4/multiDimscale.nc4"
         openNetchdfFile(filename).use { myfile ->
             println("--- ${myfile!!.type()} $filename ")
@@ -42,20 +43,11 @@ class N4charTest {
             assertEquals(Datatype.Companion.CHAR, v.datatype)
             val data = myfile.readArrayData(v)
             println("file_date data = $data")
-            assertEquals(Datatype.Companion.CHAR, data.datatype)
-            assertIs<ArrayUByte>(data)
-
-            val expect = listOf(50,48,49,48,45,48,52,45,48,52,84,48,57,58,49,55,58,52,52,46,48,48,48,48,48,48,50,48,49,48,45,48,52,45,48,52,84,48,57,58,53,52,58,49)
-            data.forEachIndexed { idx, it ->
-                if (idx < expect.size) {
-                    assertEquals(expect[idx], it.toInt())
-                }
-            }
-            val svalues = data.makeStringsFromBytes()
-            println("svalues = $svalues")
+            assertEquals(Datatype.Companion.STRING, data.datatype)
+            assertIs<ArrayString>(data)
 
             val expectNames = listOf("2010-04-04T09:17:44.000000","2010-04-04T09:54:18.900000","2010-04-04T09:55:51.700000","2010-04-04T09:57:23.700000","2010-04-04T09:58:56.000000","2010-04-04T10:00:29.000000","2010-04-04T10:02:01.200000","2010-04-04T10:03:33.200000","2010-04-04T10:05:09.500000","2010-04-04T10:06:41.600000")
-            svalues.forEachIndexed { idx, it ->
+            data.forEachIndexed { idx, it ->
                 assertEquals(expectNames[idx], it)
             }
         }

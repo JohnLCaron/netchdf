@@ -59,7 +59,6 @@ class CountVersions {
 
     @Test
     fun countVersions() {
-
         files().forEach { filename ->
             try {
                 openNetchdfFile(filename).use { ncfile ->

@@ -3,7 +3,7 @@ package com.sunya.netchdf.jhdf
 import com.sunya.cdm.api.Datatype
 import com.sunya.cdm.api.EnumTypedef
 import com.sunya.cdm.array.*
-import com.sunya.netchdf.hdf5.*
+// import com.sunya.netchdf.hdf5filters.*
 import com.sunya.netchdf.openNetchdfFile
 import com.sunya.netchdf.testfiles.JhdfFiles
 import com.sunya.netchdf.testfiles.jhdfTestDir
@@ -23,11 +23,12 @@ class JhdfCompare {
         }
     }
 
+    /*
     init {
         FilterRegistrar.registerFilter(Lz4Filter())
         FilterRegistrar.registerFilter(LzfFilter())
         FilterRegistrar.registerFilter(BitShuffleFilter())
-    }
+    } */
 
     @Test
     fun compareOneWithJhdf() {
