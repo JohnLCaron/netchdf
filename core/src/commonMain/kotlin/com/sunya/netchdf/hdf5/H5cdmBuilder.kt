@@ -185,7 +185,6 @@ internal open class DataContainerAttribute(
 
 val mdlClassCount = getDataLayoutCounts()
 
-// TODO ?? none of the version4 layouts are implemented
 internal class DataContainerVariable(
     override val name: String,
     override val h5type: H5TypeInfo,

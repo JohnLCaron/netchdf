@@ -8,6 +8,8 @@ import kotlin.test.assertTrue
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+const val nano = 1.0e-9
+
 fun showNetchdfHeader(filename: String) {
     println(filename)
     openNetchdfFile(filename).use { myfile ->
