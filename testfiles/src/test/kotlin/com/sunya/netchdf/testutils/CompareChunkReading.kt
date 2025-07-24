@@ -40,7 +40,7 @@ fun compareChunkReading(filename: String, varname : String? = null) {
 
 fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>): Int {
     val filename = myfile.location().substringAfterLast('/')
-
+    println("  ${myvar.nameAndShape()}")
     Stats.clear()
 
     var sumChunkIterator = 0.0
@@ -49,8 +49,14 @@ fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>): Int {
         val chunkIter = myfile.chunkIterator(myvar)
         for (pair in chunkIter) {
             // println(" ${pair.section} = ${pair.array.shape.contentToString()}")
-            sumChunkIterator += sumValues(pair.array)
+            val sum = sumValues(pair.array)
+            sumChunkIterator += sum
             countChunkIterator++
+            // println("chunk ${pair.section} sum $sum")
+            /* if (pair.section.toString().contains("[0:0][0:17][0:97][148:295]")) {
+                println(pair)
+            } */
+
         }
     }
     Stats.of("chunkIterator", filename, "chunk").accum(time1, countChunkIterator)
@@ -71,11 +77,17 @@ fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>): Int {
         if (layout == "DataLayoutBTreeVer1") {
             val time2 = measureNanoTime {
                 hdf5.readChunksConcurrent(myvar, { it ->
-                    suma.getAndAdd(sumValues(it.array))
+                    val sum = sumValues(it.array)
+                    suma.getAndAdd(sum)
                     counta.fetchAndAdd(1)
+                    // println(" chunk ${it.section} sum $sum")
+                    /* if (it.section.toString().contains("[0:0][0:17][0:97][148:295]")) {
+                        println(it)
+                    } */
                 }, done = { })
             }
-            Stats.of("concurrentSum", filename, "chunk").accum(time2, counta.load())
+            val countConcurrentRead = counta.load()
+            Stats.of("concurrentSum", filename, "chunk").accum(time2,countConcurrentRead )
             val sumConcurrentRead = suma.get()
             assertTrue(
                 nearlyEquals(sumConcurrentRead, sumArrayRead),
@@ -84,60 +96,40 @@ fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>): Int {
         }
     }
 
-    Stats.show()
+    // Stats.show()
 
     return countChunkIterator
 }
 
-/* compare readArrayData with chunkIterator
-private fun compareChunkReadingForVar(myFile: Netchdf, myvar: Variable<*>, compare : Boolean = true): Int {
-    println(" compareChunkReadingForVar ${myvar.nameAndShape()}")
-    val filename = myFile.location().substringAfterLast('/')
-    val varBytes = myvar.nelems
-    if (varBytes >= maxBytes) {
-        println(" *** ${myvar.nameAndShape()} skip reading ArrayData too many bytes= $varBytes max = $maxBytes")
-        return 0
-    }
+private fun sumValues(array : ArrayTyped<*>): Double {
+    var result = 0.0
 
-    var sumArrayData = 0.0
-    if (compare) {
-        val time3 = measureNanoTime {
-            val arrayData = myFile.readArrayData(myvar, null)
-            sumArrayData = sumValues(arrayData)
-        }
-        Stats.of("readArrayData", filename, "chunk").accum(time3, 1)
-    }
-
-    var nchunks = 0
-
-    if (myFile is Hdf5File) {
-        val layout = myFile.layoutName(myvar)
-        if (layout == "DataLayoutBTreeVer1") {
-            val countChunks = AtomicInt(0)
-            val sumChunkIterator = AtomicDouble(0.0)
-            val time1 = measureNanoTime {
-                myFile.readChunksConcurrent(
-                    myvar,
-                    lamda = {
-                        countChunks.fetchAndAdd(1)
-                        sumChunkIterator.getAndAdd(sumValues(it.array))
-                    },
-                    done = {},
-                    10
-                )
+    if (array.datatype.isNumber) {
+        for (value in array) {
+            val number = (value as Number)
+            val numberd: Double = number.toDouble()
+            if (numberd.isFinite()) {
+                result += numberd
             }
-            nchunks = countChunks.load()
-            val sumChunksConcurrent = sumChunkIterator.get()
-            Stats.of("chunkIterator", filename, "chunk").accum(time1, nchunks)
-
-            assertTrue(
-                nearlyEquals(sumChunksConcurrent, sumArrayData),
-                "sumChunksConcurrent $sumChunksConcurrent != $sumArrayData sumArrayData for variable '${myvar.fullname()}'"
-            )
+        }
+    } else if (array.datatype.isIntegral) {
+        for (value in array) {
+            val useValue = when (value) {
+                is UByte -> value.toByte()
+                is UShort -> value.toShort()
+                is UInt -> value.toInt()
+                is ULong -> value.toLong()
+                else -> value
+            }
+            val number = (useValue as Number)
+            val numberd: Double = number.toDouble()
+            if (numberd.isFinite()) {
+                result += numberd
+            }
         }
     }
-    return nchunks
-} */
+    return result
+}
 
 //////////////////////////////////////////////////////////////////////////////////////
 // compare reading data chunkIterate API with Netch and NC
@@ -195,40 +187,6 @@ private fun compareOneVarIterate(myvar: Variable<*>, myfile: Netchdf, ncvar : Va
         assertTrue(nearlyEquals(sum1, sum2), "$sum1 != $sum2 sum2")
         println("sum = $sum1")
     }
-}
-
-///////////////////////////////////////////////////////////
-private fun sumValues(array : ArrayTyped<*>): Double {
-    var result = 0.0
-    if (array is ArraySingle || array is ArrayEmpty) {
-        return result // test fillValue the same ??
-    }
-
-    if (array.datatype.isNumber) {
-        for (value in array) {
-            val number = (value as Number)
-            val numberd: Double = number.toDouble()
-            if (numberd.isFinite()) {
-                result += numberd
-            }
-        }
-    } else if (array.datatype.isIntegral) {
-        for (value in array) {
-            val useValue = when (value) {
-                is UByte -> value.toByte()
-                is UShort -> value.toShort()
-                is UInt -> value.toInt()
-                is ULong -> value.toLong()
-                else -> value
-            }
-            val number = (useValue as Number)
-            val numberd: Double = number.toDouble()
-            if (numberd.isFinite()) {
-                result += numberd
-            }
-        }
-    }
-    return result
 }
 
 

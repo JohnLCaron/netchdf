@@ -49,7 +49,7 @@ internal class BTree1(
 
     // here both internal and leaf are the same structure
     // Btree nodes Level 1A1 - Version 1 B-trees
-    inner class Node(val address: Long, val parent: Node?) : BTreeNodeIF {
+    inner class Node(val address: Long, val parent: Node?) {
         val level: Int
         val nentries: Int
         private val leftAddress: Long
@@ -93,11 +93,11 @@ internal class BTree1(
             // but most nodes will point to less than that number of children""
         }
 
-        override fun isLeaf() = (level == 0)
+        fun isLeaf() = (level == 0)
 
-        override fun nentries() = nentries
+        fun nentries() = nentries
 
-        override fun dataChunkEntryAt(idx: Int) = dataChunkEntries[idx]
+        fun dataChunkEntryAt(idx: Int) = dataChunkEntries[idx]
     }
 
     /** @param key the byte offset into the local heap for the first object name in the subtree which that key describes. */
@@ -129,13 +129,9 @@ internal class BTree1(
         override fun show(tiling : Tiling) : String = "chunkSize=${key.chunkSize}, chunkStart=${key.offsets.contentToString()}" +
                 ", tile= ${tiling.tile(key.offsets).contentToString()}  idx=$idx"
     }
+
 }
 
-interface BTreeNodeIF {
-    fun isLeaf(): Boolean
-    fun nentries(): Int
-    fun dataChunkEntryAt(idx: Int) : DataChunkIF // only if isLeaf
-}
 
 interface DataChunkIF {
     fun childAddress(): Long

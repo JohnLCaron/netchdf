@@ -10,58 +10,65 @@ import kotlin.collections.mutableListOf
 /** a BTree1 that uses OpenFileExtended and tracks its own tiling. */
 internal class BTree1data(
     val raf: OpenFileExtended,
-    val rootNodeAddress: Long,
+    rootNodeAddress: Long,
     varShape: LongArray,
     chunkShape: LongArray,
 ) {
     val tiling = Tiling(varShape, chunkShape)
     val ndimStorage = chunkShape.size
+    val rootNode: BTreeNode
 
-    fun rootNode(): BTreeNode = BTreeNode(rootNodeAddress, null)
+    init {
+        rootNode = BTreeNode(rootNodeAddress, null)
+    }
+
+    fun asSequence(): Sequence<Pair<Long, DataChunk>> = sequence {
+        repeat( tiling.nelems) {
+            //val startingIndex = tiling.orderToIndex(it.toLong())
+            //val indexSpace = IndexSpace(startingIndex, tiling.chunk)
+            yield(Pair(it.toLong(), findDataChunk(it) ?: missingDataChunk(it)))
+        }
+    }
+
+    internal fun findDataChunk(order: Int): DataChunk? {
+        return rootNode.findDataChunk(order)
+    }
 
     // here both internal and leaf are the same structure
     // Btree nodes Level 1A1 - Version 1 B-trees
     inner class BTreeNode(val address: Long, val parent: BTreeNode?)  {
-        val level: Int
-        val nentries: Int
-        private val leftAddress: Long
-        private val rightAddress: Long
+        var level: Int = 0
+        var nentries: Int = 0
 
-        val keys = mutableListOf<LongArray>()
-        val values = mutableListOf<DataChunkIF>()
+        val keyValues = mutableListOf<Pair<Int, DataChunk>>() // tile order to DataChunk
         val children = mutableListOf<BTreeNode>()
 
+        var lastOrder : Int = 0
+
         init {
-            val state = OpenFileState(raf.getFileOffset(address), false)
-            val magic: String = raf.readString(state, 4)
-            check(magic == "TREE") { "DataBTree doesnt start with TREE" }
+            if (address > 0) {
+                val state = OpenFileState(raf.getFileOffset(address), false)
+                val magic: String = raf.readString(state, 4)
+                check(magic == "TREE") { "DataBTree doesnt start with TREE" }
 
-            val type: Int = raf.readByte(state).toInt()
-            check(type == 1) { "DataBTree must be type 1" }
+                val type: Int = raf.readByte(state).toInt()
+                check(type == 1) { "DataBTree must be type 1" }
 
-            level = raf.readByte(state).toInt() // leaf nodes are level 0
-            nentries = raf.readShort(state).toInt() // number of children to which this node points
-            leftAddress = raf.readOffset(state)
-            rightAddress = raf.readOffset(state)
+                level = raf.readByte(state).toInt() // leaf nodes are level 0
+                nentries = raf.readShort(state).toInt() // number of children to which this node points
+                val leftAddress = raf.readOffset(state)
+                val rightAddress = raf.readOffset(state)
 
-            if (nentries == 0) {
-                val chunkSize = raf.readInt(state)
-                val filterMask = raf.readInt(state)
-                val inner = LongArray(ndimStorage) { j -> raf.readLong(state) }
-                val key = DataChunkKey(chunkSize, filterMask, inner)
-                val childPointer = raf.readAddress(state)
-                keys.add(inner)
-                values.add(DataChunkEntry1(this, key, childPointer))
-            } else {
                 repeat(nentries) {
                     val chunkSize = raf.readInt(state)
                     val filterMask = raf.readInt(state)
                     val inner = LongArray(ndimStorage) { j -> raf.readLong(state) }
-                    val key = DataChunkKey(chunkSize, filterMask, inner)
+                    val order = tiling.order(inner).toInt()
+                    val key = DataChunkKey(order, chunkSize, filterMask)
                     val childPointer = raf.readAddress(state) // 4 or 8 bytes, then add fileOffset
                     if (level == 0) {
-                        keys.add(inner)
-                        values.add(DataChunkEntry1( this,  key, childPointer))
+                        keyValues.add(Pair(order, DataChunk(key, childPointer)))
+                        lastOrder = order
                     } else {
                         children.add(BTreeNode(childPointer, this))
                     }
@@ -72,44 +79,52 @@ internal class BTree1data(
             // but most nodes will point to less than that number of children""
         }
 
-        //  return only the leaf nodes, in any order
-        fun asSequence(): Sequence<Pair<Long, DataChunkIF>> = sequence {
+        // this does not have missing data. Use iterator on the Btree1data class
+        //  return only the leaf nodes, in depth-first order
+        fun asSequence(): Sequence<Pair<Int, DataChunkIF>> = sequence {
             // Handle child nodes recursively (in-order traversal)
             if (children.isNotEmpty()) {
                 children.forEachIndexed { index, childNode ->
                     yieldAll(childNode.asSequence()) // Yield all elements from the child
                 }
             } else {  // If it's a leaf node (no children)
-                keys.forEachIndexed { index, key ->
-                    yield(tiling.order(key) to values[index]) // Yield all key-value pairs
-                }
+                keyValues.forEach { yield(it) }
             }
         }
-    }
 
-    data class DataChunkKey(val chunkSize: Int, val filterMask : Int, val offsets: LongArray) {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is DataChunkKey) return false
-            if (!offsets.contentEquals(other.offsets)) return false
-            return true
+        fun findDataChunk(wantOrder: Int): DataChunk? {
+            if (children.isNotEmpty()) { // search tree; assumes that chunks are ordered
+                children.forEach { childNode ->
+                    if (wantOrder <= childNode.lastOrder)
+                        return childNode.findDataChunk(wantOrder)
+                }
+            } else {  // If it's a leaf node (no children)
+                val kv = keyValues.find { it.first == wantOrder }
+                return kv?.second
+            }
+            return null
         }
 
-        override fun hashCode(): Int {
-            return offsets.contentHashCode()
-        }
     }
+
+    data class DataChunkKey(val order: Int, val chunkSize: Int, val filterMask : Int)
 
     //  childAddress = data chunk (level 1) else a child node
-    data class DataChunkEntry1(val parent : BTreeNode, val key : DataChunkKey, val childAddress : Long) : DataChunkIF {
+    inner class DataChunk(val key : DataChunkKey, val childAddress : Long) : DataChunkIF {
         override fun childAddress() = childAddress
-        override fun offsets() = key.offsets
+        override fun offsets() = tiling.orderToIndex(key.order.toLong())
         override fun isMissing() = (childAddress <= 0L) // may be 0 or -1
         override fun chunkSize() = key.chunkSize
         override fun filterMask() = key.filterMask
 
-        override fun show(tiling : Tiling) : String = "chunkSize=${key.chunkSize}, chunkStart=${key.offsets.contentToString()}" +
-                ", tile= ${tiling.tile(key.offsets).contentToString()}"
+        override fun show(tiling : Tiling) : String = "chunkSize=${key.chunkSize}, chunkStart=${offsets().contentToString()}" +
+                ", tile= ${tiling.tile(offsets() ).contentToString()}"
+
+        fun show() = show(tiling)
+    }
+
+    fun missingDataChunk(order: Int) : DataChunk {
+        return DataChunk(DataChunkKey(order, 0, 0), -1L)
     }
 }
 

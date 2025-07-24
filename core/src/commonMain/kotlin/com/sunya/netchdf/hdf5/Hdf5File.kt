@@ -36,7 +36,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
             return("DataContainerAttribute")
         }
         val vinfo = (v.spObject as DataContainerVariable)
-        return if (vinfo.mdl != null) vinfo.mdl.javaClass.simpleName else "none"
+        return vinfo.mdl.javaClass.simpleName
     }
 
     override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
@@ -114,24 +114,27 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
             return listOf<ArraySection<T>>().iterator()
         }
         val wantSection = SectionPartial.fill(section, v2.shape)
-        val vinfo = v2.spObject as DataContainerVariable
-
-        if (vinfo.onlyFillValue) { // fill value only, no data
-            val tba = TypedByteArray(v2.datatype, vinfo.fillValue, 0, isBE = vinfo.h5type.isBE)
-            val single = ArraySection<T>(ArraySingle(wantSection.shape.toIntArray(), v2.datatype, tba.get(0)), wantSection)
-            return listOf(single).iterator()
+        if (v2.spObject is DataContainerVariable) {
+            val vinfo = v2.spObject
+            if (vinfo.onlyFillValue) { // fill value only, no data
+                val tba = TypedByteArray(v2.datatype, vinfo.fillValue, 0, isBE = vinfo.h5type.isBE)
+                val single =
+                    ArraySection<T>(ArraySingle(wantSection.shape.toIntArray(), v2.datatype, tba.get(0)), wantSection)
+                return listOf(single).iterator()
+            }
         }
 
         // TODO can we use concurrent reading ??
-        return if (vinfo.mdl is DataLayoutBTreeVer1) {
+        return if (this.layoutName(v2) == "DataLayoutBTreeVer1") {
             H5chunkIterator(header, v2, wantSection)
         } else {
             H5maxIterator(this, v2, wantSection, maxElements ?: 100_000)
         }
     }
 
-    override fun <T> readChunksConcurrent(v2: Variable<T>, lamda : (ArraySection<*>) -> Unit, done : () -> Unit, nthreads: Int?) {
-        val reader = H5chunkConcurrent(this, v2)
+    override fun <T> readChunksConcurrent(v2: Variable<T>, lamda : (ArraySection<*>) -> Unit, done : () -> Unit,
+                                          wantSection: SectionPartial?, nthreads: Int?) {
+        val reader = H5chunkConcurrent(this, v2, wantSection)
         // TODO default nthreads ??
         reader.readChunks(nthreads ?: 20, lamda, done = { done() })
     }
