@@ -111,8 +111,8 @@ class NClibFile(val filename: String) : Netchdf {
         // NOOP
     }
 
-    override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
-        return readArrayData(v2, SectionPartial.fill(section, v2.shape))
+    override fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
+        return readArrayData(v2, SectionPartial.fill(wantSection, v2.shape))
     }
 
     internal fun <T> readArrayData(v2: Variable<T>, wantSection: Section): ArrayTyped<T> {
@@ -348,8 +348,8 @@ class NClibFile(val filename: String) : Netchdf {
         }
     }
 
-    override fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
-        val filled = SectionPartial.fill(section, v2.shape)
+    override fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
+        val filled = SectionPartial.fill(wantSection, v2.shape)
         return NCmaxIterator(v2, filled, maxElements ?: 100_000)
     }
 

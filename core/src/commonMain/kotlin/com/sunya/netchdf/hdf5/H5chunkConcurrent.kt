@@ -8,8 +8,6 @@ import com.sunya.cdm.api.Variable
 import com.sunya.cdm.api.computeSize
 import com.sunya.cdm.api.toIntArray
 import com.sunya.cdm.api.toLongArray
-import com.sunya.cdm.iosp.OkioFile
-import com.sunya.cdm.iosp.OpenFileIF
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.layout.IndexSpace
 import com.sunya.cdm.layout.Tiling
@@ -25,13 +23,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 
-class H5readConcurrent(val h5file: Hdf5File, val v2: Variable<*>) {
+class H5chunkConcurrent(h5file: Hdf5File, val v2: Variable<*>) {
     val h5 = h5file.header
+    val rafext: OpenFileExtended = h5.openFileExtended()
+
     val varShape = v2.shape
     val chunkShape: IntArray
     val tiling: Tiling
     val nchunks: Long
-    internal val rootNode: BTree1ext.BTreeNode
+    internal val rootNode: BTree1data.BTreeNode
     val rootAddress: Long
 
     init {
@@ -42,38 +42,38 @@ class H5readConcurrent(val h5file: Hdf5File, val v2: Variable<*>) {
         chunkShape = mdl.chunkDims
         tiling = Tiling(varShape, chunkShape.toLongArray())
         nchunks = tiling.tileShape.computeSize()
-        val h5 = h5file.header
 
-        val rafext: OpenFileExtended = OpenFileExtended(
-            h5.raf,
-            h5.isLengthLong, h5.isOffsetLong, h5.superblockStart,
-        )
-
-        val bTreeExt = BTree1ext(rafext, mdl.btreeAddress, 1, varShape, chunkShape.toLongArray())
+        // its not obvious you actually need a seperate raf
+        val bTreeExt = BTree1data(rafext, mdl.btreeAddress, varShape, chunkShape.toLongArray())
         rootNode = bTreeExt.rootNode()
         rootAddress = mdl.btreeAddress
     }
 
-    fun readChunks(nthreads: Int, lamda: (ArraySection<*>) -> Unit) {
+    // TODO section: SectionPartial
+    fun readChunks(nthreads: Int, lamda: (ArraySection<*>) -> Unit, done: () -> Unit) {
         runBlocking {
             val jobs = mutableListOf<Job>()
-
+            val workers = mutableListOf<Worker>()
             val chunkProducer = produceChunks(rootNode.asSequence())
             repeat(nthreads) {
-                val worker = Worker(h5file.filename)
+                val worker = Worker()
                 jobs.add( launchJob(worker, chunkProducer, lamda))
+                workers.add(worker)
             }
 
             // wait for all jobs to be done, then close everything
             joinAll(*jobs.toTypedArray())
+            workers.forEach { it.rafext.close() }
         }
+        rafext.close()
+        done()
     }
 
     private var count = 0
     private fun CoroutineScope.produceChunks(producer: Sequence<Pair<Long, DataChunkIF>>): ReceiveChannel<Pair<Long, DataChunkIF>> =
         produce {
-            for (datatChunk in producer) {
-                send(datatChunk)
+            for (dataChunk in producer) {
+                send(dataChunk)
                 yield()
                 count++
             }
@@ -87,20 +87,16 @@ class H5readConcurrent(val h5file: Hdf5File, val v2: Variable<*>) {
     ) = launch(Dispatchers.Default) {
         for (pair: Pair<Long, DataChunkIF> in input) {
             val arraySection = worker.work(pair.second)
-            lamda(arraySection)
+            if (arraySection != null) lamda(arraySection)
             yield()
         }
     }
 
-    private inner class Worker(filename: String) {
-        private val raf: OpenFileIF = OkioFile(filename)
-        private val rafext: OpenFileExtended = OpenFileExtended(
-            raf,
-            h5.isLengthLong, h5.isOffsetLong, h5.superblockStart,
-        )
+    private inner class Worker() {
+        val rafext: OpenFileExtended = h5.openFileExtended() // here we need a seperate raf
 
         // a thread-safe accessor of the btree
-        private val btree1 = BTree1ext(rafext, rootAddress, 1, varShape, chunkShape.toLongArray())
+        // private val btree1 = BTree1data(rafext, rootAddress, varShape, chunkShape.toLongArray())
 
         val vinfo: DataContainerVariable = v2.spObject as DataContainerVariable
         val h5type: H5TypeInfo
@@ -119,9 +115,10 @@ class H5readConcurrent(val h5file: Hdf5File, val v2: Variable<*>) {
             state = OpenFileState(0L, h5type.isBE)
         }
 
-        fun work(dataChunk : DataChunkIF) : ArraySection<*> {
-            val dataSpace = IndexSpace(v2.rank, dataChunk.offsets(), vinfo.storageDims)
+        fun work(dataChunk : DataChunkIF) : ArraySection<*>? {
+            // TODO check if intersect with wantSection before reading in data
 
+            val dataSpace = IndexSpace(v2.rank, dataChunk.offsets(), vinfo.storageDims)
             val ba = if (dataChunk.isMissing()) {
                 if (debugChunking) println("   missing ${dataChunk.show(tiling)}")
                 val sizeBytes = dataSpace.totalElements * elemSize
@@ -132,7 +129,7 @@ class H5readConcurrent(val h5file: Hdf5File, val v2: Variable<*>) {
             } else {
                 if (debugChunking) println("  chunkIterator=${dataChunk.show(tiling)}")
                 state.pos = dataChunk.childAddress()
-                val rawdata = h5.raf.readByteArray(state, dataChunk.chunkSize())
+                val rawdata = rafext.readByteArray(state, dataChunk.chunkSize())
                 if (dataChunk.filterMask() == null) rawdata else filters.apply(rawdata, dataChunk.filterMask()!!)
             }
 

@@ -5,8 +5,6 @@ import kotlin.test.*
 import com.sunya.netchdf.testutils.Stats
 import com.sunya.netchdf.testutils.readNetchdfData
 import com.sunya.netchdf.testutils.testData
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
 
 // Compare header using cdl(!strict) with Netchdf and NetcdfClibFile
 // mostly fails in handling of types. nclib doesnt pass over all the types.
@@ -47,24 +45,27 @@ class NetchdfExtra {
     }
 
     ///////////////////////////////////////////////////////
-    @ParameterizedTest
-    @MethodSource("files")
-    fun checkVersion(filename: String) {
-        openNetchdfFile(filename).use { ncfile ->
-            if (ncfile == null) {
-                println("Not a netchdf file=$filename ")
-                return
+
+    @Test
+    fun checkVersion() {
+        files().forEach { filename ->
+            openNetchdfFile(filename).use { ncfile ->
+                if (ncfile == null) {
+                    println("Not a netchdf file=$filename ")
+                    return
+                }
+                println("${ncfile.type()} $filename ")
+                val paths = versions.getOrPut(ncfile.type()) { mutableListOf() }
+                paths.add(filename)
             }
-            println("${ncfile.type()} $filename ")
-            val paths = versions.getOrPut(ncfile.type()) { mutableListOf() }
-            paths.add(filename)
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("files")
-    fun readNetchdfDataAll(filename: String) {
-        readNetchdfData(filename, null)
+    @Test
+    fun readNetchdfDataAll() {
+        files().forEach { filename ->
+            readNetchdfData(filename, null)
+        }
     }
 
 }

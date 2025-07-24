@@ -59,6 +59,7 @@ internal class H5chunkReader(val h5 : H5builder) {
         }
     }
 
+    // TODO can we use concurrent reading ??
     internal fun <T> readBtreeVer1(v2: Variable<T>, wantSection: Section): ArrayTyped<T> {
         val vinfo = v2.spObject as DataContainerVariable
         val h5type = vinfo.h5type

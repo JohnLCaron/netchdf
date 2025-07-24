@@ -37,6 +37,18 @@ data class Section(val ranges : List<LongProgression>, val varShape : LongArray)
         result = 31 * result + varShape.contentHashCode()
         return result
     }
+
+    override fun toString(): String {
+        return "Section(${ranges.show()}, shape=${shape.contentToString()}, totalElements=$totalElements, varShape=${varShape.contentToString()})"
+    }
+}
+
+fun List<LongProgression>.show() = buildString {
+    forEach { p: LongProgression ->
+        append("[${p.first}:${p.last}")
+        if (p.step != 1L) append(":${p.step}")
+        append("]")
+   }
 }
 
 /** A partially filled section of multidimensional array indices. */

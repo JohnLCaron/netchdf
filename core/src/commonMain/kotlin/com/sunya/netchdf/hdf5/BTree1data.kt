@@ -7,21 +7,15 @@ import com.sunya.cdm.layout.Tiling
 import com.sunya.cdm.util.InternalLibraryApi
 import kotlin.collections.mutableListOf
 
-/** a BTree1 that uses OpenFileExtended */
-internal class BTree1ext(
+/** a BTree1 that uses OpenFileExtended and tracks its own tiling. */
+internal class BTree1data(
     val raf: OpenFileExtended,
     val rootNodeAddress: Long,
-    val nodeType : Int,  // 0 = group/symbol table, 1 = raw data chunks
     varShape: LongArray,
     chunkShape: LongArray,
 ) {
     val tiling = Tiling(varShape, chunkShape)
     val ndimStorage = chunkShape.size
-
-    init {
-        // println(" BTreeNode varShape ${varShape.contentToString()} chunkShape ${chunkShape.contentToString()}")
-        require (nodeType == 1)
-    }
 
     fun rootNode(): BTreeNode = BTreeNode(rootNodeAddress, null)
 
@@ -33,7 +27,6 @@ internal class BTree1ext(
         private val leftAddress: Long
         private val rightAddress: Long
 
-        // type 1
         val keys = mutableListOf<LongArray>()
         val values = mutableListOf<DataChunkIF>()
         val children = mutableListOf<BTreeNode>()
@@ -44,26 +37,34 @@ internal class BTree1ext(
             check(magic == "TREE") { "DataBTree doesnt start with TREE" }
 
             val type: Int = raf.readByte(state).toInt()
-            check(type == nodeType) { "DataBTree must be type $nodeType" }
+            check(type == 1) { "DataBTree must be type 1" }
 
             level = raf.readByte(state).toInt() // leaf nodes are level 0
             nentries = raf.readShort(state).toInt() // number of children to which this node points
             leftAddress = raf.readOffset(state)
             rightAddress = raf.readOffset(state)
 
-            // println(" BTreeNode level $level nentries $nentries")
-
-            for (idx in 0 until nentries) {
+            if (nentries == 0) {
                 val chunkSize = raf.readInt(state)
                 val filterMask = raf.readInt(state)
                 val inner = LongArray(ndimStorage) { j -> raf.readLong(state) }
                 val key = DataChunkKey(chunkSize, filterMask, inner)
-                val childPointer = raf.readAddress(state) // 4 or 8 bytes, then add fileOffset
-                if (level == 0) {
-                    keys.add(inner)
-                    values.add(DataChunkEntry1(level, this, idx, key, childPointer))
-                } else {
-                    children.add(BTreeNode(childPointer, this))
+                val childPointer = raf.readAddress(state)
+                keys.add(inner)
+                values.add(DataChunkEntry1(this, key, childPointer))
+            } else {
+                repeat(nentries) {
+                    val chunkSize = raf.readInt(state)
+                    val filterMask = raf.readInt(state)
+                    val inner = LongArray(ndimStorage) { j -> raf.readLong(state) }
+                    val key = DataChunkKey(chunkSize, filterMask, inner)
+                    val childPointer = raf.readAddress(state) // 4 or 8 bytes, then add fileOffset
+                    if (level == 0) {
+                        keys.add(inner)
+                        values.add(DataChunkEntry1( this,  key, childPointer))
+                    } else {
+                        children.add(BTreeNode(childPointer, this))
+                    }
                 }
             }
 
@@ -100,15 +101,15 @@ internal class BTree1ext(
     }
 
     //  childAddress = data chunk (level 1) else a child node
-    data class DataChunkEntry1(val level : Int, val parent : BTreeNode, val idx : Int, val key : DataChunkKey, val childAddress : Long) : DataChunkIF {
+    data class DataChunkEntry1(val parent : BTreeNode, val key : DataChunkKey, val childAddress : Long) : DataChunkIF {
         override fun childAddress() = childAddress
         override fun offsets() = key.offsets
-        override fun isMissing() = (childAddress == -1L)
+        override fun isMissing() = (childAddress <= 0L) // may be 0 or -1
         override fun chunkSize() = key.chunkSize
         override fun filterMask() = key.filterMask
 
         override fun show(tiling : Tiling) : String = "chunkSize=${key.chunkSize}, chunkStart=${key.offsets.contentToString()}" +
-                ", tile= ${tiling.tile(key.offsets).contentToString()}  idx=$idx"
+                ", tile= ${tiling.tile(key.offsets).contentToString()}"
     }
 }
 

@@ -4,13 +4,14 @@ package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.util.InternalLibraryApi
+import io.github.oshai.kotlinlogging.KotlinLogging
 
-/** Wraps a BTree1New, when its used to store symbol table nodes for GroupOld. */
+/** Wraps a BTree1, when its used to store symbol table nodes for GroupOld. */
 @OptIn(InternalLibraryApi::class)
 internal class GroupSymbolTable(val btreeAddress : Long) {
 
     fun symbolTableEntries(h5: H5builder): Iterable<SymbolTableEntry> {
-        val btree = BTree1(h5, btreeAddress, 0)
+        val btree = BTreeSymbolTable(h5, btreeAddress)
         val symbols = mutableListOf<SymbolTableEntry>()
         btree.readGroupEntries().forEach {
             readSymbolTableNode(h5, it.childAddress, symbols)
@@ -33,9 +34,13 @@ internal class GroupSymbolTable(val btreeAddress : Long) {
             if (entry.objectHeaderAddress != 0L) { // skip zeroes, probably a bug in HDF5 file format or docs, or me
                 symbols.add(entry)
             } else {
-                println("   BAD objectHeaderAddress==0 !! $entry")
+                logger.warn{"   BAD objectHeaderAddress==0 !! $entry"}
             }
         }
+    }
+
+    companion object {
+        private val logger = KotlinLogging.logger("GroupSymbolTable")
     }
 }
 
@@ -101,4 +106,68 @@ internal data class SymbolTableEntry(
     init {
         require(dataSize == 32 || dataSize == 40) // sanity check
     }
+}
+
+internal class BTreeSymbolTable(
+    val h5: H5builder,
+    val rootNodeAddress: Long,
+) {
+    fun readGroupEntries(): Iterator<GroupEntry> {
+        val root = Node(rootNodeAddress, null)
+        return if (root.level == 0) {
+            root.groupEntries.iterator()
+        } else {
+            val result = mutableListOf<GroupEntry>()
+            for (entry in root.groupEntries) {
+                readAllEntries(entry, root, result)
+            }
+            result.iterator()
+        }
+    }
+
+    private fun readAllEntries(entry: GroupEntry, parent: Node, list: MutableList<GroupEntry>) {
+        val node = Node(entry.childAddress, parent)
+        if (node.level == 0) {
+            list.addAll(node.groupEntries)
+        } else {
+            for (nested in node.groupEntries) {
+                readAllEntries(nested, node, list)
+            }
+        }
+    }
+
+    // here both internal and leaf are the same structure
+    // Btree nodes Level 1A1 - Version 1 B-trees
+    inner class Node(val address: Long, val parent: Node?) {
+        val level: Int
+        val nentries: Int
+        private val leftAddress: Long
+        private val rightAddress: Long
+
+        // type 0
+        val groupEntries = mutableListOf<GroupEntry>()
+
+        init {
+            val state = OpenFileState(h5.getFileOffset(address), false)
+            val magic: String = h5.raf.readString(state, 4)
+            check(magic == "TREE") { "BTreeSymbolTable doesnt start with TREE" }
+
+            val type: Int = h5.raf.readByte(state).toInt()
+            check(type == 0) { "BTreeSymbolTable must be node type 0" }
+
+            level = h5.raf.readByte(state).toInt() // leaf nodes are level 0
+            nentries = h5.raf.readShort(state).toInt() // number of children to which this node points
+            leftAddress = h5.readOffset(state)
+            rightAddress = h5.readOffset(state)
+
+            repeat (nentries) {
+                    val key = h5.readLength(state) // 4 or 8 bytes
+                    val address = h5.readOffset(state) // 4 or 8 bytes
+                    if (address > 0) groupEntries.add(GroupEntry(key, address))
+                }
+            }
+        }
+
+    /** @param key the byte offset into the local heap for the first object name in the subtree which that key describes. */
+    data class GroupEntry(val key: Long, val childAddress: Long)
 }

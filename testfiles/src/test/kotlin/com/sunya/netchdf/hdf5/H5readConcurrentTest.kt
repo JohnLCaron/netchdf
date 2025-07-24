@@ -1,17 +1,19 @@
+@file:OptIn(ExperimentalAtomicApi::class)
+
 package com.sunya.netchdf.hdf5
 
-import com.sunya.cdm.api.ArraySection
-import com.sunya.cdm.api.Datatype
-import com.sunya.cdm.api.Netchdf
+import com.sunya.cdm.util.nearlyEquals
 import com.sunya.cdm.api.Variable
-import com.sunya.cdm.api.readChunksConcurrent
 import com.sunya.cdm.array.ArrayTyped
 import com.sunya.netchdf.testfiles.H5Files
 import com.sunya.netchdf.testutils.AtomicDouble
 import com.sunya.netchdf.testutils.Stats
 import com.sunya.netchdf.testutils.compareChunkReading
+import com.sunya.netchdf.testutils.compareChunkReadingForVar
 import com.sunya.netchdf.testutils.testData
 import kotlin.collections.iterator
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.system.measureNanoTime
 
 import kotlin.test.*
@@ -39,7 +41,12 @@ class H5readConcurrentTest {
     }
 
     @Test
-    fun compareChunkIterateTest() {
+    fun compareChunkReadingProblem() {
+        compareChunkReading(testData + "cdmUnitTest/formats/hdf5/HIRDLS/HIRDLS2-AFGL_b027_na.he5", "/HDFEOS/SWATHS/HIRDLS/Data_Fields/Altitude")
+    }
+
+    @Test
+    fun compareChunkReadingTest() {
         files().forEach { filename ->
             compareChunkReading(filename, null)
         }
@@ -49,7 +56,7 @@ class H5readConcurrentTest {
     fun testH5readConcurrent() {
         val filename = "/home/all/testdata/cdmUnitTest/formats/netcdf4/hiig_forec_20140208.nc"
         val varname = "salt"
-        Hdf5File(filename).use { myfile ->
+        Hdf5File(filename).use { myfile : Hdf5File ->
             println("${myfile.type()} $filename ${myfile.size / 1000.0 / 1000.0} Mbytes")
 
             val myvar = myfile.rootGroup().allVariables().find { it.fullname() == varname }
@@ -59,10 +66,8 @@ class H5readConcurrentTest {
 
             for (nthreads in listOf(1, 2, 4, 8, 10, 16, 20, 24, 32, 40, 48)) {
                 val time = measureNanoTime {
-                    val reader = H5readConcurrent(myfile, myvar)
-                    reader.readChunks(nthreads) { asect: ArraySection<*> ->
-                        // println(" section = ${asect.section}")
-                    }
+                    //     fun <T> readChunksConcurrent(v2: Variable<T>, lamda : (ArraySection<*>) -> Unit, done : () -> Unit,  nthreads: Int?) {
+                    myfile.readChunksConcurrent(myvar, lamda = { it -> println(" section = ${it.section}") }, { }, nthreads)
                 }
                 println("$nthreads, ${time * nano}")
             }
@@ -80,11 +85,11 @@ fun readH5concurrent(filename: String, varname: String? = null) {
         if (varname != null) {
             val myvar = myfile.rootGroup().allVariables().find { it.fullname() == varname }
                 ?: throw RuntimeException("cant find $varname")
-            countChunks += testOneVarConcurrent(myfile, myvar)
+            countChunks += compareChunkReadingForVar(myfile, myvar)
         } else {
             myfile.rootGroup().allVariables().forEach { it ->
                 if (it.datatype.isNumber) {
-                    countChunks += testOneVarConcurrent(myfile, it)
+                    countChunks += compareChunkReadingForVar(myfile, it)
                 }
             }
         }
@@ -94,59 +99,63 @@ fun readH5concurrent(filename: String, varname: String? = null) {
     }
 }
 
-fun testOneVarConcurrent(myFile: Netchdf, myvar: Variable<*>): Int {
-    val filename = myFile.location().substringAfterLast('/')
-    val sum = AtomicDouble(0.0)
-    var countChunks = 0
+/*
+fun testOneVarConcurrent(hdf5: Hdf5File, myvar: Variable<*>): Int {
+    val filename = hdf5.location().substringAfterLast('/')
+
+    Stats.clear()
+
+    var sumChunkIterator = 0.0
+    var countChunkIterator = 0
     val time1 = measureNanoTime {
-        val chunkIter = myFile.chunkIterator(myvar)
+        val chunkIter = hdf5.chunkIterator(myvar)
         for (pair in chunkIter) {
             // println(" ${pair.section} = ${pair.array.shape.contentToString()}")
-            sumValues(pair.array)
-            countChunks++
+            sumChunkIterator += sumValues(pair.array)
+            countChunkIterator++
         }
     }
-    val sum1 = sum.get()
-    Stats.of("serialSum", filename, "chunk").accum(time1, countChunks)
+    Stats.of("chunkIterator", filename, "chunk").accum(time1, countChunkIterator)
 
-    sum.set(0.0)
-    val time2 = measureNanoTime {
-        myFile.readChunksConcurrent(myvar, null) { sumValues(it.array) }
-    }
-    val sum2 = sum.get()
-    Stats.of("concurrentSum", filename, "chunk").accum(time2, countChunks)
-
-    sum.set(0.0)
+    var sumArrayRead = 0.0
     val time3 = measureNanoTime {
-        val arrayData = myFile.readArrayData(myvar, null)
-        sumValues(arrayData)
+        val arrayData = hdf5.readArrayData(myvar, null)
+        sumArrayRead += sumValues(arrayData)
     }
-    val sum3 = sum.get()
-    Stats.of("regularSum", filename, "chunk").accum(time3, countChunks)
+    Stats.of("readArrayData", filename, "chunk").accum(time3, 1)
+    assertTrue(nearlyEquals(sumChunkIterator, sumArrayRead), "sumChunkIterator $sumChunkIterator != $sumArrayRead sumArrayRead")
 
-    println("    serialSum $time1")
-    println("concurrentSum $time2")
-    println("   regularSum $time3")
+    val counta = AtomicInt(0)
+    val suma = AtomicDouble(0.0)
+    val layout = hdf5.layoutName(myvar)
+    if (layout == "DataLayoutBTreeVer1") {
+        val time2 = measureNanoTime {
+            hdf5.readChunksConcurrent(myvar, { it ->
+                suma.getAndAdd(sumValues(it.array))
+                counta.fetchAndAdd(1)
+            }, done = { })
+        }
+        Stats.of("concurrentSum", filename, "chunk").accum(time2, counta.load())
+        val sumConcurrentRead = suma.get()
+        assertTrue(nearlyEquals(sumConcurrentRead, sumArrayRead), "sumConcurrentRead $sumConcurrentRead != $sumArrayRead sumArrayRead")
+    }
 
     Stats.show()
 
-    /* if (sum1.isFinite() && sum2.isFinite() && sum3.isFinite()) {
-    assertTrue(nearlyEquals(sum1, sum2), "$sum1 != $sum2 sum2")
-    assertTrue(nearlyEquals(sum1, sum3), "$sum1 != $sum3 sum3")
+    return countChunkIterator
 }
 
- */
-    return countChunks
-}
+fun sumValues(array: ArrayTyped<*>): Double {
+    var result = 0.0
+    if (!array.datatype.isNumber) return result
 
-var sum = AtomicDouble(0.0)
-fun sumValues(array: ArrayTyped<*>) {
-    if (!array.datatype.isNumber) return
-        for (value in array) {
+    for (value in array) {
         val number = (value as Number)
         val numberd: Double = number.toDouble()
         if (numberd.isFinite()) {
-            sum.getAndAdd(numberd)
+            result += numberd
         }
     }
+    return result
 }
+*/

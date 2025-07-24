@@ -1,10 +1,12 @@
 package com.sunya.netchdf.testutils
 
+import kotlin.concurrent.atomics.AtomicLong
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
+// doesnt work, dunno why ??
 @OptIn(ExperimentalAtomicApi::class)
-class AtomicDouble(initialValue: Double) {
+class AtomicDoubleNotWorking(initialValue: Double) {
     private val atomicReference = AtomicReference(initialValue)
 
     fun get(): Double = atomicReference.load()
@@ -14,17 +16,46 @@ class AtomicDouble(initialValue: Double) {
     }
 
     fun getAndAdd(delta: Double): Double {
+        var ntries = 0
         while (true) {
-            val current = atomicReference.load()
-            val new = current + delta
-            if (atomicReference.compareAndSet(current, new)) {
-                return current
+            val currentVal = atomicReference.load()
+            val newValue = currentVal + delta
+            if (atomicReference.compareAndSet(currentVal, newValue)) {
+                return newValue
+            }
+            ntries++
+            if (ntries > 100)
+                println(ntries)
+        }
+    }
+}
+
+// AtomicLong with Bit Conversions: You can store the double or float value as its bit representation
+// (e.g., using Double.doubleToLongBits() and Double.longBitsToDouble()) within an AtomicLong
+// and perform atomic operations on the long value.
+@OptIn(ExperimentalAtomicApi::class)
+class AtomicDouble(initialValue: Double) {
+    private val atomicReference = AtomicLong(initialValue.toBits())
+
+    fun get(): Double = Double.fromBits(atomicReference.load())
+
+    fun set(newValue: Double) {
+        atomicReference.store(newValue.toBits())
+    }
+
+    fun getAndAdd(delta: Double): Double {
+        while (true) {
+            val currentVal = atomicReference.load()
+            val newDouble = Double.fromBits(currentVal) + delta
+            val newValue = newDouble.toBits()
+            if (atomicReference.compareAndSet(currentVal, newValue)) {
+                return newDouble
             }
         }
     }
 }
 
-// not quite ready
+// not quite ready WHY NOT ?
 /*
 import kotlinx.atomicfu.*
 

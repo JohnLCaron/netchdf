@@ -4,6 +4,7 @@ package com.sunya.cdm.api
 
 import com.sunya.cdm.util.InternalLibraryApi
 import com.sunya.cdm.util.makeValidCdmObjectName
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 class Group(orgName : String,
             val typedefs : List<Typedef>,
@@ -154,7 +155,7 @@ class Group(orgName : String,
         // add if vb name not already added
         fun addVariable(vb: Variable.Builder<*>) : Builder {
             if (vb.datatype == Datatype.REFERENCE) {
-                println("skip REFERENCE variable $vb")
+                logger.warn{"skip REFERENCE variable $vb"}
                 return this
             }
             if (variables.find {it.name == vb.name } == null) {
@@ -233,5 +234,9 @@ class Group(orgName : String,
             val useName = makeValidCdmObjectName(name)
             return Group(useName, typedefs, dimensions, attributes, variables, groups, parent)
         }
+    }
+
+    companion object {
+        val logger = KotlinLogging.logger("Group")
     }
 }
