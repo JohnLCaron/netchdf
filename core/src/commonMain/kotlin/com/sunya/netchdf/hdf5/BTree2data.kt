@@ -1,6 +1,5 @@
 package com.sunya.netchdf.hdf5
 
-
 import com.sunya.cdm.api.computeSize
 import com.sunya.cdm.api.toIntArray
 import com.sunya.cdm.iosp.OpenFileIF
@@ -15,7 +14,7 @@ import kotlin.math.pow
 @OptIn(InternalLibraryApi::class)
 
 /*  Btree version 2, for data. From jhdf. */
-internal class BTree2j(private val h5: H5builder, owner: String, address: Long, storageDims: LongArray? = null) { // BTree2
+internal class BTree2data(private val h5: H5builder, owner: String, address: Long, storageDims: LongArray? = null) { // BTree2
     val btreeType: Int
     private val nodeSize: Int // size in bytes of btree nodes
     private val recordSize: Int // size in bytes of btree records

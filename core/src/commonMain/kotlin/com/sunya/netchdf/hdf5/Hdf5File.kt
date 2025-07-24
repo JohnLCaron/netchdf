@@ -32,6 +32,9 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
     override val size : Long get() = raf.size()
 
     fun layoutName(v: Variable<*>): String {
+        if (v.spObject is DataContainerAttribute) {
+            return("DataContainerAttribute")
+        }
         val vinfo = (v.spObject as DataContainerVariable)
         return if (vinfo.mdl != null) vinfo.mdl.javaClass.simpleName else "none"
     }
@@ -94,7 +97,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
 
             } else if (vinfo.mdl is DataLayoutBtreeVer2) {
                 // H5chunkReader(header).readBtreeVer2j(v2, wantSection)
-                val index =  BTree2j(header, v2.name, vinfo.dataPos, vinfo.storageDims)
+                val index =  BTree2data(header, v2.name, vinfo.dataPos, vinfo.storageDims)
                 H5chunkReader(header).readChunkedData(v2, wantSection, index.chunkIterator())
 
             } else {
@@ -106,7 +109,6 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         }
     }
 
-    // for Netchdf.readChunksConcurrent
     override fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial?, maxElements : Int?) : Iterator<ArraySection<T>> {
         if (v2.nelems == 0L) {
             return listOf<ArraySection<T>>().iterator()
@@ -116,11 +118,11 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
 
         if (vinfo.onlyFillValue) { // fill value only, no data
             val tba = TypedByteArray(v2.datatype, vinfo.fillValue, 0, isBE = vinfo.h5type.isBE)
-            val single = ArraySection<T>( ArraySingle(wantSection.shape.toIntArray(), v2.datatype, tba.get(0)), wantSection)
+            val single = ArraySection<T>(ArraySingle(wantSection.shape.toIntArray(), v2.datatype, tba.get(0)), wantSection)
             return listOf(single).iterator()
         }
 
-        // TODO
+        // TODO can we use concurrent reading ??
         return if (vinfo.mdl is DataLayoutBTreeVer1) {
             H5chunkIterator(header, v2, wantSection)
         } else {
@@ -128,4 +130,36 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         }
     }
 
+    override fun <T> readChunksConcurrent(v2: Variable<T>, lamda : (ArraySection<*>) -> Unit, done : () -> Unit, nthreads: Int?) {
+        val reader = H5chunkConcurrent(this, v2)
+        // TODO default nthreads ??
+        reader.readChunks(nthreads ?: 20, lamda, done = { done() })
+    }
+
+    /*
+    class Btree1chunkIterator(val hdfFile: Hdf5File, val v2: Variable<*>, val wantSection: SectionPartial?): AbstractIterator<ArraySection<*>>() {
+        val reader = H5readConcurrent(hdfFile, v2)
+        val nthreads = 20
+        var currElement: ArraySection<*>? = null // could be a queue ? or a stack with a limit
+        var done: Boolean = false
+
+        init {
+            reader.readChunks(nthreads,
+                lamda = { it ->
+                    if (currElement == null) currElement = it
+                },
+                done = { done = true }
+            )
+        }
+
+        override fun computeNext() {
+            if (currElement != null) {
+                setNext( currElement!! )
+                currElement = null
+            } else {
+                wait()
+            }
+            if (done) done()
+        }
+    } */
 }

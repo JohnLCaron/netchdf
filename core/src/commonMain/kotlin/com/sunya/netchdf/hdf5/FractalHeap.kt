@@ -174,12 +174,12 @@ internal class FractalHeap(private val h5: H5builder, forWho: String, address: L
                     when (subtype) {
                         1, 2 -> {
                             if (btreeHugeObjects == null) { // lazy
-                                val local = BTree2j(h5, "FractalHeap btreeHugeObjects", btreeAddressHugeObjects)
+                                val local = BTree2data(h5, "FractalHeap btreeHugeObjects", btreeAddressHugeObjects)
                                 require(local.btreeType == subtype)
                                 btreeHugeObjects = local.records
                             }
 
-                            val record1: BTree2j.Record1? = BTree2j.findRecord1byId(btreeHugeObjects!!, offset)
+                            val record1: BTree2data.Record1? = BTree2data.findRecord1byId(btreeHugeObjects!!, offset)
                             if (record1 == null) {
                                 throw RuntimeException("Cant find DHeapId=$offset")
                             }
@@ -385,7 +385,7 @@ internal class FractalHeap(private val h5: H5builder, forWho: String, address: L
     }
 
     companion object {
-        private val logger = KotlinLogging.logger("H5builder")
+        private val logger = KotlinLogging.logger("FractalHeap")
         var debugDetail = false
         var debugFractalHeap = false
         var debugPos = false

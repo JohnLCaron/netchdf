@@ -27,7 +27,7 @@ internal fun H5builder.readH5Group(facade: DataObjectFacade): H5GroupBuilder? {
         facade.group = hashGroups[groupMessage.btreeAddress]
         if (facade.group != null && facade.parent != null) {
             if (facade.parent.isChildOf(facade.group!!)) {
-                println("Remove hard link to group that creates a loop = ${facade.group!!.name}")
+                H5builder.logger.warn{"Remove hard link to group that creates a loop = ${facade.group!!.name} in ${this.raf.location()}"}
                 facade.group = null
                 return null
             }
@@ -59,11 +59,11 @@ internal fun H5builder.readGroupNew(
         check(btreeAddress >= 0) { "no valid btree for GroupNew with Fractal Heap" }
 
         // read in btree and all entries
-        val btree2j = BTree2j(this, parent.name, btreeAddress)
+        val btree2j = BTree2data(this, parent.name, btreeAddress)
         for (record in btree2j.records) {
             val heapId: ByteArray = when (btree2j.btreeType) {
-                5 -> (record as BTree2j.Record5).heapId
-                6 -> (record as BTree2j.Record6).heapId
+                5 -> (record as BTree2data.Record5).heapId
+                6 -> (record as BTree2data.Record6).heapId
                 else -> throw RuntimeException("btree2 type ${btree2j.btreeType} mot supported")
             }
 
@@ -138,7 +138,7 @@ internal fun H5builder.replaceSymbolicLinks(groupb: H5GroupBuilder) {
         } else if (dof.linkName != null) { // symbolic links
             val link: DataObjectFacade? = this.symlinkMap[dof.linkName]
             if (link == null) {
-                println(" WARNING Didnt find symbolic link=${dof.linkName} from ${dof.name}")
+                H5builder.logger.warn{"Didnt find symbolic link=${dof.linkName} from ${dof.name}"}
                 objList.removeAt(count)
                 continue
             }

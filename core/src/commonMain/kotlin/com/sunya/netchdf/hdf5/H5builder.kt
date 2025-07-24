@@ -11,6 +11,7 @@ import com.fleeksoft.charset.Charset
 import com.fleeksoft.charset.Charsets
 import com.sunya.cdm.array.makeString
 import com.sunya.cdm.util.InternalLibraryApi
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 private const val debugStart = false
 private const val debugSuperblock = false
@@ -384,6 +385,55 @@ class H5builder(
         return size
     }
 
+    ////////////////////////////////////////////////////////////////////////////////
+    fun convertReferences(gb : Group.Builder) {
+        val refAtts = gb.attributes.filter{ it.datatype == Datatype.REFERENCE }
+        refAtts.forEach { att ->
+            val convertAtt = convertReferenceAttribute(att)
+            if (convertAtt != null) {
+                gb.addAttribute(convertAtt)
+            }
+            gb.attributes.remove(att)
+        }
+
+        gb.variables.forEach{ vb ->
+            val refAtts = vb.attributes.filter{ it.datatype == Datatype.REFERENCE}
+            refAtts.forEach { att ->
+                val convertAtt = convertReferenceAttribute(att)
+                if (convertAtt != null) {
+                    if (att.name == HDF5_DIMENSION_LIST) {
+                        vb.dimNames = convertAtt.values as List<String>
+                    } else {
+                        vb.addAttribute(convertAtt)
+                    }
+                }
+                vb.attributes.remove(att)
+            }
+        }
+        gb.groups.forEach{ convertReferences(it) }
+    }
+
+    fun convertReferenceAttribute(att : Attribute<*>) : Attribute<*>? {
+        val svalues = mutableListOf<String>()
+        att.values.forEach {
+            val dsetId = it as Long
+            val pair = datasetMap[dsetId]
+            if (pair == null)  {
+                logger.warn {"H5 cant find dataset reference for att $att in file ${raf.location()}"}
+                return null
+            }
+            val (gb, vb) = pair
+            val name = vb.fullname(gb)
+            svalues.add(name)
+        }
+        return Attribute(att.name, Datatype.STRING, svalues)
+    }
+
+    fun openFileExtended(): OpenFileExtended {
+        val raf: OpenFileIF = OkioFile(this.raf.location())
+        return OpenFileExtended(raf, this.isLengthLong, this.isOffsetLong, this.superblockStart)
+    }
+
     companion object {
         // special attribute names in HDF5
         const val HDF5_CLASS = "CLASS"
@@ -426,50 +476,7 @@ class H5builder(
            * 3) all variables' dimensions have a dimension scale
            */
         private const val KNOWN_FILTERS = 3
+
+        val logger = KotlinLogging.logger("H5builder")
     }
-
-    ////////////////////////////////////////////////////////////////////////////////
-    fun convertReferences(gb : Group.Builder) {
-        val refAtts = gb.attributes.filter{ it.datatype == Datatype.REFERENCE }
-        refAtts.forEach { att ->
-            val convertAtt = convertReferenceAttribute(att)
-            if (convertAtt != null) {
-                gb.addAttribute(convertAtt)
-            }
-            gb.attributes.remove(att)
-        }
-
-        gb.variables.forEach{ vb ->
-            val refAtts = vb.attributes.filter{ it.datatype == Datatype.REFERENCE}
-            refAtts.forEach { att ->
-                val convertAtt = convertReferenceAttribute(att)
-                if (convertAtt != null) {
-                    if (att.name == HDF5_DIMENSION_LIST) {
-                        vb.dimNames = convertAtt.values as List<String>
-                    } else {
-                        vb.addAttribute(convertAtt)
-                    }
-                }
-                vb.attributes.remove(att)
-            }
-        }
-        gb.groups.forEach{ convertReferences(it) }
-    }
-
-    fun convertReferenceAttribute(att : Attribute<*>) : Attribute<*>? {
-        val svalues = mutableListOf<String>()
-        att.values.forEach {
-            val dsetId = it as Long
-            val pair = datasetMap[dsetId]
-            if (pair == null)  {
-                println("H5 cant find dataset reference for att $att")
-                return null
-            }
-            val (gb, vb) = pair
-            val name = vb.fullname(gb)
-            svalues.add(name)
-        }
-        return Attribute(att.name, Datatype.STRING, svalues)
-    }
-
 }

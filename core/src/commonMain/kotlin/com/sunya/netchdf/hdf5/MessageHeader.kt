@@ -884,14 +884,14 @@ private fun H5builder.readAttributesFromInfoMessage2(
 
     val btreeAddress: Long = attributeOrderBtreeAddress ?: attributeNameBtreeAddress
     if (btreeAddress < 0 || fractalHeapAddress < 0) return emptyList()
-    val btree2j = BTree2j(this, "AttributeInfoMessage", btreeAddress)
+    val btree2j = BTree2data(this, "AttributeInfoMessage", btreeAddress)
     val fractalHeapj = FractalHeap(this, "AttributeInfoMessage", fractalHeapAddress)
 
     val attMessages = mutableListOf<AttributeMessage>()
     for (record in btree2j.records) {
         val heapId: ByteArray = when (btree2j.btreeType) {
-            8 -> (record as BTree2j.Record8).heapId
-            9 -> (record as BTree2j.Record9).heapId
+            8 -> (record as BTree2data.Record8).heapId
+            9 -> (record as BTree2data.Record9).heapId
             else -> continue
         }
 

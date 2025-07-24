@@ -132,6 +132,52 @@ class CountVersions {
             .sortedBy { (_, value) -> value }
             .toMap()
 
-        sorted.keys.forEach{ println("${sorted[it]} == $it } files") }
+        sorted.keys.forEach{ println("${sorted[it]} == $it files") }
     }
+
+    @Test
+    fun countLayoutTypes() {
+        fun h5files(): Iterator<String> {
+            return sequenceOf(
+                N4Files.Companion.files().asSequence(),
+                H5Files.Companion.files().asSequence(),
+                NetchdfExtraFiles.Companion.files(false).asSequence(),
+                JhdfFiles.Companion.files().asSequence(),
+            )
+                .flatten()
+                .iterator()
+        }
+
+        val layoutCounts = mutableMapOf<String, LayoutCount>()
+
+        h5files().forEach { filename ->
+            try {
+                openNetchdfFile(filename).use { ncfile ->
+                    if (ncfile == null) {
+                        println("Not a netchdf file=$filename ")
+                    } else {
+                        if (ncfile.type() in listOf("netcdf4", "hdf")) {
+                            val hdf5File = ncfile as Hdf5File
+                            ncfile.rootGroup().allVariables().forEach { v ->
+                                val layout = hdf5File.layoutName(v)
+                                val layoutCount = layoutCounts.getOrPut(layout) { LayoutCount() }
+                                layoutCount.count++
+                                layoutCount.size += v.nelems
+                            }
+                        }
+                    }
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
+        }
+
+        val sorted = layoutCounts.toList()
+            .sortedBy { (_, value) -> value.size }
+            .toMap()
+
+        sorted.keys.forEach{ println("${sorted[it]} == '$it'") }
+    }
+
+    data class LayoutCount(var count: Int = 0, var size: Long = 0)
 }

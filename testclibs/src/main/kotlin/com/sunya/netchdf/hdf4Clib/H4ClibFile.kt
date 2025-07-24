@@ -47,8 +47,8 @@ class Hdf4ClibFile(val filename: String) : Netchdf {
     }
 
     // LOOK SDreadchunk ??
-    override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
-        return readArrayData(v2, SectionPartial.fill(section, v2.shape))
+    override fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
+        return readArrayData(v2, SectionPartial.fill(wantSection, v2.shape))
     }
 
     internal fun <T> readArrayData(v2: Variable<T>, filled: Section): ArrayTyped<T> {
@@ -81,12 +81,12 @@ class Hdf4ClibFile(val filename: String) : Netchdf {
         throw RuntimeException("cant read ${v2.name}")
     }
 
-    override fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
+    override fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
         if (v2.nelems == 0L) {
             return listOf<ArraySection<T>>().iterator()
         }
 
-        val filled = SectionPartial.fill(section, v2.shape)
+        val filled = SectionPartial.fill(wantSection, v2.shape)
         return HCmaxIterator(v2, filled, maxElements ?: 100_000)
     }
 

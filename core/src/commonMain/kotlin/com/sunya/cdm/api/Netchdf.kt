@@ -1,7 +1,6 @@
 package com.sunya.cdm.api
 
 import com.sunya.cdm.array.ArrayTyped
-import com.sunya.cdm.iosp.ReadChunkConcurrent
 import com.sunya.cdm.util.CdmFullNames
 
 interface Netchdf : AutoCloseable {
@@ -16,22 +15,23 @@ interface Netchdf : AutoCloseable {
     }
 
     // TODO I think the output type is not always the input type
-    fun <T> readArrayData(v2: Variable<T>, section: SectionPartial? = null) : ArrayTyped<T>
+    fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial? = null) : ArrayTyped<T>
 
-    // iterate over all the chunks in section, order is arbitrary.
-    fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial? = null, maxElements : Int? = null) : Iterator<ArraySection<T>>
+    // iterate over all the chunks in section, order is arbitrary. TODO where is intersection with wantSection done ??
+    fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial? = null, maxElements : Int? = null) : Iterator<ArraySection<T>>
+
+    fun <T> readChunksConcurrent(v2: Variable<T>,
+                                 lamda : (ArraySection<*>) -> Unit,
+                                 done : () -> Unit,
+                                 nthreads: Int? = null) {
+        TODO()
+    }
 }
 
 // the section describes the array chunk reletive to the variable's shape.
-data class ArraySection<T>(val array : ArrayTyped<T>, val section : Section)
-
-// Experimental: read concurrently chunks of data, call back with lamda, order is arbitrary.
-fun <T> Netchdf.readChunksConcurrent(v2: Variable<T>,
-                                     section: SectionPartial? = null,
-                                     maxElements : Int? = null,
-                                     nthreads: Int = 20,
-                                     lamda : (ArraySection<T>) -> Unit) {
-    val reader = ReadChunkConcurrent()
-    val chunkIter = this.chunkIterator( v2, section, maxElements)
-    reader.readChunks(nthreads, chunkIter, lamda)
+data class ArraySection<T>(val array : ArrayTyped<T>, val section : Section) {
+    fun intersect(wantSection: SectionPartial) : ArrayTyped<T> {
+        // TODO
+        return array
+    }
 }

@@ -55,8 +55,8 @@ class Hdf5ClibFile(val filename: String) : Netchdf {
         val status = H5Fclose(header.file_id)
     }
 
-    override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
-        return readArrayData(v2, SectionPartial.fill(section, v2.shape))
+    override fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
+        return readArrayData(v2, SectionPartial.fill(wantSection, v2.shape))
     }
 
     internal fun <T> readArrayData(v2: Variable<T>, fillSection: Section): ArrayTyped<T> {
@@ -140,8 +140,8 @@ class Hdf5ClibFile(val filename: String) : Netchdf {
         }
     }
 
-    override fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
-        return H5CmaxIterator(v2, section, maxElements ?: 100_000)
+    override fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
+        return H5CmaxIterator(v2, wantSection, maxElements ?: 100_000)
     }
 
     private inner class H5CmaxIterator<T>(val v2: Variable<T>, section : SectionPartial?, maxElems: Int) : AbstractIterator<ArraySection<T>>() {

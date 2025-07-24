@@ -9,8 +9,6 @@ import com.sunya.cdm.util.InternalLibraryApi
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.math.ceil
 
-private val logger = KotlinLogging.logger("ChunkedDataLayoutMessageV4")
-
 // DataLayoutMessage version 4, layout class 2 (chunked), chunkIndexingType 1-5
 // jhdf
 
@@ -213,6 +211,9 @@ internal class FixedArrayIndex(val h5: H5builder, val varShape: IntArray, val md
 
     fun chunkIterator() : Iterator<ChunkImpl> = chunks.iterator()
 
+    companion object {
+        val logger = KotlinLogging.logger("ChunkedDataLayoutMessageV4")
+    }
 }
 
 /////////////////////////////////////////////////

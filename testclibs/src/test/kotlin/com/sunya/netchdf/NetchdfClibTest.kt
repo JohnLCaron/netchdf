@@ -7,7 +7,6 @@ import com.sunya.netchdf.hdf4Clib.Hdf4ClibFile
 import com.sunya.netchdf.hdf5Clib.Hdf5ClibFile
 import com.sunya.netchdf.netcdfClib.NClibFile
 import com.sunya.netchdf.testfiles.*
-import com.sunya.netchdf.testutils.AtomicDouble
 import com.sunya.netchdf.testutils.Stats
 import com.sunya.netchdf.testutils.testData
 import kotlin.test.*
@@ -734,32 +733,29 @@ fun compareIterateNetchdf(myfile: Netchdf, cfile: Netchdf, varname: String?, sec
 }
 
 fun compareOneVarIterate(myvar: Variable<*>, myfile: Netchdf, cvar : Variable<*>, cfile: Netchdf, section: SectionPartial?) {
-    val sum = AtomicDouble(0.0)
-    sum.set(0.0)
+    var sum1 = 0.0
     var countChunks = 0
     val time1 = measureNanoTime {
         val chunkIter = myfile.chunkIterator(myvar)
         for (pair in chunkIter) {
             if (debugIter) println(" compareOneVarIterate myvar=${myvar.name} ${pair.section} = ${pair.array.shape.contentToString()}")
-            sumValues(pair.array, sum)
+            sum1 += sumValues(pair.array)
             countChunks++
         }
     }
     Stats.of("netchdf", myfile.location(), "chunk").accum(time1, countChunks)
-    val sum1 = sum.get()
 
-    sum.set(0.0)
+    var sum2 = 0.0
     countChunks = 0
     val time2 = measureNanoTime {
         val chunkIter = cfile.chunkIterator(cvar)
         for (pair in chunkIter) {
             if (debugIter) println(" compareOneVarIterate cvar=${cvar.name} ${pair.section} = ${pair.array.shape.contentToString()}")
-            sumValues(pair.array, sum)
+            sum2 += sumValues(pair.array)
             countChunks++
         }
     }
     Stats.of("nclib", cfile.location(), "chunk").accum(time2, countChunks)
-    val sum2 = sum.get()
 
     if (sum1.isFinite() && sum2.isFinite()) {
         assertTrue(nearlyEquals(sum1, sum2), "$sum1 != $sum2 sum2")
@@ -793,9 +789,10 @@ fun compareOneVarIterate(myvar: Variable<*>, myfile: Netchdf, cvar : Variable<*>
     }
 } */
 
-fun sumValues(array : ArrayTyped<*>, sum : AtomicDouble) {
+private fun sumValues(array : ArrayTyped<*>): Double {
+    var result = 0.0
     if (array is ArraySingle || array is ArrayEmpty) {
-        return // test fillValue the same ??
+        return result // test fillValue the same ??
     }
 
     if (array.datatype.isNumber) {
@@ -803,7 +800,7 @@ fun sumValues(array : ArrayTyped<*>, sum : AtomicDouble) {
             val number = (value as Number)
             val numberd: Double = number.toDouble()
             if (numberd.isFinite()) {
-                sum.getAndAdd(numberd)
+                result += numberd
             }
         }
     } else if (array.datatype.isIntegral) {
@@ -818,10 +815,11 @@ fun sumValues(array : ArrayTyped<*>, sum : AtomicDouble) {
             val number = (useValue as Number)
             val numberd: Double = number.toDouble()
             if (numberd.isFinite()) {
-                sum.getAndAdd(numberd)
+                result += numberd
             }
         }
     }
+    return result
 }
 
 fun countArrayDiffs(array1 : ArrayTyped<*>, array2 : ArrayTyped<*>, showDiff : Int = 0) : Int {

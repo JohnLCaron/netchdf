@@ -2,7 +2,6 @@ package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.api.*
 import com.sunya.cdm.array.ArrayTyped
-import com.sunya.cdm.iosp.OpenFileIF
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.layout.Chunker
 import com.sunya.cdm.layout.IndexSpace
@@ -89,25 +88,3 @@ internal class H5chunkIterator<T>(val h5 : H5builder, val v2: Variable<T>, val w
     }
 }
 
-// for H5readConcurrent
-class OpenFileExtended(val delegate: OpenFileIF,
-                       val isLengthLong: Boolean,
-                       val isOffsetLong: Boolean,
-                       val startingOffset: Long, ) : OpenFileIF by delegate {
-
-    fun readLength(state : OpenFileState): Long {
-        return if (isLengthLong) delegate.readLong(state) else delegate.readInt(state).toLong()
-    }
-
-    fun readOffset(state : OpenFileState): Long {
-        return if (isOffsetLong) delegate.readLong(state) else delegate.readInt(state).toLong()
-    }
-
-    fun getFileOffset(address: Long): Long {
-        return startingOffset + address
-    }
-
-    fun readAddress(state : OpenFileState): Long {
-        return getFileOffset(readOffset(state))
-    }
-}

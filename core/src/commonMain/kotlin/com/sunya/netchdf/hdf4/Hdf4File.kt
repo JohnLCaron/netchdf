@@ -34,11 +34,11 @@ class Hdf4File(val filename : String) : Netchdf {
     override fun type() = header.type()
     override val size : Long get() = raf.size()
 
-    override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
+    override fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
         if (v2.nelems == 0L) {
             return ArrayEmpty(v2.shape.toIntArray(), v2.datatype)
         }
-        val filledSection = SectionPartial.fill(section, v2.shape)
+        val filledSection = SectionPartial.fill(wantSection, v2.shape)
         return if (v2.datatype == Datatype.COMPOUND) {
             readStructureDataArray(v2, filledSection) as ArrayTyped<T>
         } else {
