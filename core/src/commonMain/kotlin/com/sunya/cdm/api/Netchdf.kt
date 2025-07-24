@@ -23,6 +23,7 @@ interface Netchdf : AutoCloseable {
     fun <T> readChunksConcurrent(v2: Variable<T>,
                                  lamda : (ArraySection<*>) -> Unit,
                                  done : () -> Unit,
+                                 wantSection: SectionPartial? = null,
                                  nthreads: Int? = null) {
         TODO()
     }

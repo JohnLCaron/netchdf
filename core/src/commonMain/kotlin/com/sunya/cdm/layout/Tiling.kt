@@ -1,5 +1,6 @@
 package com.sunya.cdm.layout
 
+import com.sunya.cdm.api.computeSize
 import kotlin.math.max
 import kotlin.math.min
 
@@ -20,6 +21,7 @@ class Tiling(varShape: LongArray, chunkShape: LongArray) {
     val tileShape : LongArray // overall shape of the dataset's tile space
     val indexShape : LongArray // overall shape of the dataset's index space - may be larger than actual variable shape
     val tileStrider : LongArray // for computing tile index
+    val nelems: Int
 
     init {
         // convenient to allow tileSize to have (an) extra dimension at the end
@@ -30,10 +32,13 @@ class Tiling(varShape: LongArray, chunkShape: LongArray) {
         for (i in 0 until rank) {
             this.indexShape[i] = max(varShape[i], chunk[i])
         }
+
         this.tileShape = LongArray(rank)
         for (i in 0 until rank) {
             tileShape[i] = (this.indexShape[i] + chunk[i] - 1) / chunk[i]
         }
+        nelems = tileShape.computeSize().toInt()
+
         tileStrider = LongArray(rank)
         var accumStride = 1L
         for (k in rank - 1 downTo 0) {
@@ -88,7 +93,7 @@ class Tiling(varShape: LongArray, chunkShape: LongArray) {
             tile[k] = rem / tileStrider[k]
             rem = rem - (tile[k] * tileStrider[k])
         }
-        print("tile $order = ${tile.contentToString()}")
+        // print("tile $order = ${tile.contentToString()}")
 
         // convert to index
         return index(tile)

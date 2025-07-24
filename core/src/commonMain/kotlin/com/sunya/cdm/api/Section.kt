@@ -1,6 +1,7 @@
 package com.sunya.cdm.api
 
 /** A filled section of multidimensional array indices, plus the variable shape. */
+// TODO IndexSpace mo betta?
 data class Section(val ranges : List<LongProgression>, val varShape : LongArray) {
     val rank = ranges.size
     val shape : LongArray // or IntArray ??

@@ -10,25 +10,25 @@ import com.sunya.netchdf.testutil.testData
 import kotlin.system.measureNanoTime
 import kotlin.test.Test
 
-class Btree1extTest {
+class Btree1dataTest {
 
     // 227322 == /home/all/testdata/cdmUnitTest/formats/netcdf4/ds.mint.nc#Minimum_temperature_surface_12_Hour_Minimum#DataLayoutBTreeVer1 } files
 
     @Test
-    fun testBTree1ext() {
+    fun testBTree1data() {
         val filename = testData + "netcdf4/ds.mint.nc"
         val varname = "Minimum_temperature_surface_12_Hour_Minimum"
         Hdf5File(filename).use { myfile ->
             println("${myfile.type()} $filename ${myfile.size / 1000.0 / 1000.0} Mbytes")
-            println(myfile.cdl())
+            // println(myfile.cdl())
 
             val h5 = myfile.header
 
             val myvar = myfile.rootGroup().allVariables().find { it.fullname() == varname }
                 ?: throw RuntimeException("cant find $varname")
+            println("  ${myvar.nameAndShape()}")
 
             val rafext: OpenFileExtended = h5.openFileExtended()
-
             val varShape = myvar.shape
 
             require(myvar.spObject is DataContainerVariable)
@@ -39,9 +39,9 @@ class Btree1extTest {
 
             // a thread-safe accessor of the btree
             val bTreeExt = BTree1data(rafext, mdl.btreeAddress, varShape, chunkShape.toLongArray())
-            val rootNode = bTreeExt.rootNode()
+            // val rootNode = bTreeExt.rootNode()
 
-            rootNode.asSequence().forEach { (key, value) -> println("Key: ${key}, Value: $value") }
+            bTreeExt.asSequence().forEach { (key, value) -> println("Key: ${key}, Value: ${value.show()}") }
         }
     }
 
@@ -60,9 +60,9 @@ class Btree1extTest {
             for (nthreads in listOf(1, 2, 4, 8, 10, 16, 20, 24, 32, 40, 48)) {
                 val time = measureNanoTime {
                     //     fun readChunks(nthreads: Int, lamda: (ArraySection<*>) -> Unit, done: () -> Unit) {
-                    val reader = H5chunkConcurrent(myfile, myvar)
+                    val reader = H5chunkConcurrent(myfile, myvar, null)
                     reader.readChunks(nthreads, { asect: ArraySection<*> ->
-                        // println(" section = ${asect.section}")
+                        println(" section = ${asect.section}")
                     }, { }, )
                 }
                 println("$nthreads, ${time * nano}")
