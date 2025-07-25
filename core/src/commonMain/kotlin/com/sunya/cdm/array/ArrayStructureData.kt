@@ -3,6 +3,7 @@ package com.sunya.cdm.array
 import com.sunya.cdm.api.*
 import com.sunya.cdm.layout.Chunker
 import com.sunya.cdm.layout.IndexSpace
+import com.sunya.cdm.layout.TransferChunk
 
 // fixed length data in the ByteBuffer, var length data goes on the heap
 class ArrayStructureData(shape : IntArray, val ba : ByteArray, val isBE: Boolean, val recsize : Int, val members : List<StructureMember<*>>)
@@ -61,6 +62,10 @@ class ArrayStructureData(shape : IntArray, val ba : ByteArray, val isBE: Boolean
         chunker.transferBA(ba, 0, recsize, sectionBA, 0)
 
         return ArrayStructureData(section.shape.toIntArray(), sectionBA, isBE, recsize, members)
+    }
+
+    override fun transfer(dst: Any, tc: TransferChunk) {
+       TODO() // maybe nobody chunks structuredata?
     }
 
     // structure data is packed into the ByteBuffer starting at the given offset

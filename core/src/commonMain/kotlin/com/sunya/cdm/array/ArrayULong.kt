@@ -40,6 +40,12 @@ class ArrayULong(shape : IntArray, datatype : Datatype<*>, val values: ULongArra
         return dst
     }
 
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as ULongArray
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
+
     companion object {
         fun fromLongArray(shape : IntArray, values : LongArray): ArrayULong =
             ArrayULong(shape, Datatype.ULONG, ULongArray(values.size) { values[it].toULong() } )

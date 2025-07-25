@@ -75,5 +75,10 @@ class ArrayOpaque(shape : IntArray, val values : List<ByteArray>, val size : Int
         }
     }
 
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as MutableList<ByteArray>
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
 
 }

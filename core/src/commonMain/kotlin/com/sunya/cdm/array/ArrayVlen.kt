@@ -3,6 +3,7 @@ package com.sunya.cdm.array
 import com.sunya.cdm.api.*
 import com.sunya.cdm.layout.IndexND
 import com.sunya.cdm.layout.IndexSpace
+import com.sunya.cdm.layout.TransferChunk
 
 // maybe should just return primitive array if only one ??
 class ArrayVlen<T>(shape : IntArray, val values : List<Array<T>>, val baseType : Datatype<T>)
@@ -32,6 +33,12 @@ class ArrayVlen<T>(shape : IntArray, val values : List<Array<T>>, val baseType :
             sectionList.add(values[odo.element().toInt()])
         }
         return ArrayVlen(section.shape.toIntArray(), sectionList, baseType)
+    }
+
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as MutableList<Array<T>>
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
     }
 
     override fun equals(other: Any?): Boolean {

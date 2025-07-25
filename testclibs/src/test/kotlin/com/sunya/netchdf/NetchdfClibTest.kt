@@ -738,7 +738,7 @@ fun compareOneVarIterate(myvar: Variable<*>, myfile: Netchdf, cvar : Variable<*>
     val time1 = measureNanoTime {
         val chunkIter = myfile.chunkIterator(myvar)
         for (pair in chunkIter) {
-            if (debugIter) println(" compareOneVarIterate myvar=${myvar.name} ${pair.section} = ${pair.array.shape.contentToString()}")
+            if (debugIter) println(" compareOneVarIterate myvar=${myvar.name} ${pair.chunkSection} = ${pair.array.shape.contentToString()}")
             sum1 += sumValues(pair.array)
             countChunks++
         }
@@ -750,7 +750,7 @@ fun compareOneVarIterate(myvar: Variable<*>, myfile: Netchdf, cvar : Variable<*>
     val time2 = measureNanoTime {
         val chunkIter = cfile.chunkIterator(cvar)
         for (pair in chunkIter) {
-            if (debugIter) println(" compareOneVarIterate cvar=${cvar.name} ${pair.section} = ${pair.array.shape.contentToString()}")
+            if (debugIter) println(" compareOneVarIterate cvar=${cvar.name} ${pair.chunkSection} = ${pair.array.shape.contentToString()}")
             sum2 += sumValues(pair.array)
             countChunks++
         }

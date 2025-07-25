@@ -37,4 +37,10 @@ class ArrayByte(shape : IntArray, val values: ByteArray) : ArrayTyped<Byte>(Data
         return dst
     }
 
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as ByteArray
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
+
 }

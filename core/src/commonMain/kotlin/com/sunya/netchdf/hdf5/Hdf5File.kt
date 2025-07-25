@@ -12,6 +12,8 @@ import com.sunya.cdm.array.ArrayTyped
 import com.sunya.cdm.array.TypedByteArray
 import com.sunya.cdm.iosp.*
 import com.sunya.cdm.util.InternalLibraryApi
+import com.sunya.netchdf.util.Deque
+import com.sunya.netchdf.util.useDefaultNThreads
 import kotlin.String
 
 /**
@@ -37,6 +39,11 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         }
         val vinfo = (v.spObject as DataContainerVariable)
         return vinfo.mdl.javaClass.simpleName
+    }
+
+    var useNThreads : Int? = null
+    fun useNThreads(): Int {
+        return useNThreads ?: com.sunya.netchdf.util.useDefaultNThreads()
     }
 
     override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
@@ -70,35 +77,38 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
                 header.readRegularData(vinfo, v2.datatype, wantSection)
 
             } else if (vinfo.mdl is DataLayoutBTreeVer1) {
-                H5chunkReader(header).readBtreeVer1(v2, wantSection)
+                if (v2.datatype == Datatype.COMPOUND)
+                    header.readBtreeVer1(v2, wantSection)
+                else
+                    readBtree1data(this, v2, section)
 
             } else if (vinfo.mdl is DataLayoutSingleChunk4) {
-                // H5chunkReader(header).readSingleChunk(v2, wantSection)
+                // header.readSingleChunk(v2, wantSection)
                 // internal data class DataLayoutSingleChunk4(val flags: Byte, val chunkDimensions: IntArray, val chunkSize: Int, val heapAddress: Long, val filterMask: Int?) : DataLayoutMessage() {
                 val offset = IntArray(v2.rank)
                 val chunk = ChunkImpl(vinfo.mdl.heapAddress, vinfo.mdl.chunkSize, offset, vinfo.mdl.filterMask)
 
-                H5chunkReader(header).readChunkedData(v2, wantSection, listOf(chunk).iterator())
+                header.readChunkedData(v2, wantSection, listOf(chunk).iterator())
 
             } else if (vinfo.mdl is DataLayoutImplicit4) {
-                // H5chunkReader(header).readImplicit4(v2, wantSection)
+                // header.readImplicit4(v2, wantSection)
                 val index = ImplicitChunkIndex(header, varShape=v2.shape.toIntArray(), vinfo.mdl)
-                H5chunkReader(header).readChunkedData(v2, wantSection, index.chunkIterator())
+                header.readChunkedData(v2, wantSection, index.chunkIterator())
 
             } else if (vinfo.mdl is DataLayoutFixedArray4) {
-                // H5chunkReader(header).readFixedArray4(v2, wantSection)
+                // header.readFixedArray4(v2, wantSection)
                 val index = FixedArrayIndex(header, varShape=v2.shape.toIntArray(), vinfo.mdl) // mdl.fixedArrayIndex
-                H5chunkReader(header).readChunkedData(v2, wantSection, index.chunkIterator())
+                header.readChunkedData(v2, wantSection, index.chunkIterator())
 
             } else if (vinfo.mdl is DataLayoutExtensibleArray4) {
                 val index = ExtensibleArrayIndex(header, vinfo.mdl.indexAddress,
                     v2.shape.toIntArray(), vinfo.mdl.chunkDimensions)
-                H5chunkReader(header).readChunkedData(v2, wantSection, index.chunkIterator())
+                header.readChunkedData(v2, wantSection, index.chunkIterator())
 
             } else if (vinfo.mdl is DataLayoutBtreeVer2) {
-                // H5chunkReader(header).readBtreeVer2j(v2, wantSection)
+                // header.readBtreeVer2j(v2, wantSection)
                 val index =  BTree2data(header, v2.name, vinfo.dataPos, vinfo.storageDims)
-                H5chunkReader(header).readChunkedData(v2, wantSection, index.chunkIterator())
+                header.readChunkedData(v2, wantSection, index.chunkIterator())
 
             } else {
                 throw RuntimeException("Unsupported data layer type ${vinfo.mdl}")
@@ -126,43 +136,42 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
 
         // TODO can we use concurrent reading ??
         return if (this.layoutName(v2) == "DataLayoutBTreeVer1") {
-            H5chunkIterator(header, v2, wantSection)
+            // H5chunkIterator(header, v2, wantSection)
+            H5chunkIterator2(this, v2, section)
         } else {
             H5maxIterator(this, v2, wantSection, maxElements ?: 100_000)
         }
     }
 
-    override fun <T> readChunksConcurrent(v2: Variable<T>, lamda : (ArraySection<*>) -> Unit, done : () -> Unit,
-                                          wantSection: SectionPartial?, nthreads: Int?) {
-        val reader = H5chunkConcurrent(this, v2, wantSection)
-        // TODO default nthreads ??
-        reader.readChunks(nthreads ?: 20, lamda, done = { done() })
-    }
-
-    /*
-    class Btree1chunkIterator(val hdfFile: Hdf5File, val v2: Variable<*>, val wantSection: SectionPartial?): AbstractIterator<ArraySection<*>>() {
-        val reader = H5readConcurrent(hdfFile, v2)
-        val nthreads = 20
-        var currElement: ArraySection<*>? = null // could be a queue ? or a stack with a limit
-        var done: Boolean = false
+    class H5chunkIterator2<T>(hdfFile: Hdf5File, val v2: Variable<T>, val wantSection: SectionPartial?): AbstractIterator<ArraySection<T>>() {
+        val reader = H5chunkConcurrent(hdfFile.header, v2, wantSection)
+        val nthreads = hdfFile.useNThreads()
+        val deque = Deque<ArraySection<T>>(10)
 
         init {
-            reader.readChunks(nthreads,
-                lamda = { it ->
-                    if (currElement == null) currElement = it
-                },
-                done = { done = true }
+            reader.readChunks(
+                nthreads,
+                lamda = { deque.add(it) },
+                done = { deque.done() }
             )
         }
 
         override fun computeNext() {
-            if (currElement != null) {
-                setNext( currElement!! )
-                currElement = null
+            val firstElement = deque.next()
+            if (firstElement != null) {
+                setNext(firstElement)
             } else {
-                wait()
+                done()
             }
-            if (done) done()
         }
-    } */
+    }
+
+    override fun <T> readChunksConcurrent(v2: Variable<T>, lamda : (ArraySection<T>) -> Unit, done : () -> Unit,
+                                          wantSection: SectionPartial?, nthreads: Int?) {
+        val reader = H5chunkConcurrent(header, v2, wantSection)
+        val availableProcessors = this.useNThreads()
+        // println("availableProcessors = $availableProcessors")
+        reader.readChunks(nthreads ?: availableProcessors, lamda, done = { done() })
+    }
+
 }

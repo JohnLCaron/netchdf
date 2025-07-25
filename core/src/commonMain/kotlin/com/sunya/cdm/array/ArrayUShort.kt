@@ -40,6 +40,12 @@ class ArrayUShort(shape : IntArray, datatype : Datatype<*>, val values: UShortAr
         return dst
     }
 
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as UShortArray
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
+
     companion object {
         fun fromShortArray(shape : IntArray, values : ShortArray): ArrayUShort =
             ArrayUShort(shape, UShortArray(values.size) { values[it].toUShort() } )

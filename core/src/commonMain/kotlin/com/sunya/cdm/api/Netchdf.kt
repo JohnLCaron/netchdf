@@ -20,8 +20,9 @@ interface Netchdf : AutoCloseable {
     // iterate over all the chunks in section, order is arbitrary. TODO where is intersection with wantSection done ??
     fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial? = null, maxElements : Int? = null) : Iterator<ArraySection<T>>
 
+    // iterate over all the chunks in section, order is arbitrary, callbacks are in multiple threads.
     fun <T> readChunksConcurrent(v2: Variable<T>,
-                                 lamda : (ArraySection<*>) -> Unit,
+                                 lamda : (ArraySection<T>) -> Unit,
                                  done : () -> Unit,
                                  wantSection: SectionPartial? = null,
                                  nthreads: Int? = null) {
@@ -30,9 +31,9 @@ interface Netchdf : AutoCloseable {
 }
 
 // the section describes the array chunk reletive to the variable's shape.
-data class ArraySection<T>(val array : ArrayTyped<T>, val section : Section) {
+data class ArraySection<T>(val array : ArrayTyped<T>, val chunkSection : Section) {
     fun intersect(wantSection: SectionPartial) : ArrayTyped<T> {
-        // TODO
+        // TODO ??
         return array
     }
 }

@@ -36,4 +36,10 @@ class ArrayDouble(shape : IntArray, val values: DoubleArray) : ArrayTyped<Double
         }
         return dst
     }
+
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as DoubleArray
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
 }

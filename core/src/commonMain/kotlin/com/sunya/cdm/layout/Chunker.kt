@@ -102,21 +102,6 @@ internal class Chunker(val dataChunk: IndexSpace, val wantSpace: IndexSpace, mer
         return "Chunker(nelems=$nelems, totalNelems=$totalNelems, dataChunk=$dataChunk, wantSpace=$wantSpace)"
     }
 
-    /* transfer from src to dst buffer, using my computed chunks
-    internal fun transfer(src: ByteBuffer, elemSize : Int, dst: ByteBuffer) {
-        for (chunk in this) {
-            System.arraycopy(
-                src.array(),
-                src.arrayOffset() + elemSize * chunk.srcElem.toInt(),
-                dst.array(),
-                dst.arrayOffset() + elemSize * chunk.destElem.toInt(),
-                elemSize * chunk.nelems,
-            )
-        }
-    }
-
-     */
-
     // the chunker tracks the dst offset
     internal fun transferBA(src: ByteArray, srcOffset: Int, elemSize : Int, dst: ByteArray, dstOffset: Int) {
         for (chunk in this) {
