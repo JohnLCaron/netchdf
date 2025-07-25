@@ -1,5 +1,5 @@
 # netchdf
-_last updated: 7/22/2025_
+_last updated: 7/25/2025_
 
 This is a rewrite in Kotlin of parts of the devcdm and netcdf-java libraries. 
 
@@ -133,7 +133,7 @@ For HDF5 files using deflate filters, the deflate library dominates the read tim
 are about 2X slower than native code. Unless the deflate libraries get better, there's not much gain in trying to make
 other parts of the code faster.
 
-We will investigate using Kotlin coroutines to speed up performance bottlenecks.
+We are seeing 10x speedup on data reading. see https://github.com/JohnLCaron/netchdf/issues/189.
 
 
 ### Goals and scope
