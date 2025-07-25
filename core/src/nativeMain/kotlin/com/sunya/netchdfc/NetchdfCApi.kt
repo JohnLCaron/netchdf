@@ -41,3 +41,4 @@ class VariableData(val varName: String, dataShape: IntArray, val nelems: Int, da
     val pinnedData: CPointer<IntVar> = data.pin().addressOf(0)
 }
 
+

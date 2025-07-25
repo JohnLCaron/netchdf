@@ -41,6 +41,12 @@ class ArrayUByte(shape: IntArray, datatype: Datatype<*>, val values: UByteArray)
         return dst
     }
 
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as UByteArray
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
+
     companion object {
         fun fromByteArray(shape: IntArray, values: ByteArray): ArrayUByte =
             ArrayUByte(shape, UByteArray(values.size) { values[it].toUByte() })

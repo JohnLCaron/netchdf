@@ -7,6 +7,7 @@ import com.sunya.cdm.api.Group
 import com.sunya.cdm.util.Indent
 import com.sunya.cdm.util.InternalLibraryApi
 import com.sunya.cdm.util.makeValidCdmObjectName
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /*
  * http://newsroom.gsfc.nasa.gov/sdptoolkit/hdfeosfaq.html
@@ -332,10 +333,6 @@ private fun stripQuotes(name: String): String {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-private const val showDetail = false
-private const val showProblems = false
-private const val showValidationFailures = false
-
 @InternalLibraryApi
 class ODLparser(val rootGroup: Group.Builder, val show : Boolean = false) {
 
@@ -398,11 +395,11 @@ class ODLparser(val rootGroup: Group.Builder, val show : Boolean = false) {
                     try {
                         val dimLength = att.component2().toInt()
                         if (dimLength == 0) {
-                            println(" *** ODL has zero dimension length for ${att.component1()}")
+                            logger.warn{" *** ODL has zero dimension length for ${att.component1()}"}
                             return false
                         }
                     } catch (ex : Exception) {
-                        println(" *** ODL cant parse dimension ${att.component1()} length ${att.component2()}")
+                        logger.warn{" *** ODL cant parse dimension ${att.component1()} length ${att.component2()}"}
                         return false
                     }
                 }
@@ -434,5 +431,13 @@ class ODLparser(val rootGroup: Group.Builder, val show : Boolean = false) {
             }
         }
         return true
+    }
+
+    companion object {
+        private val logger = KotlinLogging.logger("ODLParser")
+
+        private const val showDetail = false
+        private const val showProblems = false
+        private const val showValidationFailures = false
     }
 }

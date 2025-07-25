@@ -36,4 +36,10 @@ class ArrayLong(shape : IntArray, val values: LongArray) : ArrayTyped<Long>(Data
         }
         return dst
     }
+
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as LongArray
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
 }

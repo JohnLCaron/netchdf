@@ -119,7 +119,7 @@ class CountVersions {
 
                         ncfile.rootGroup().allVariables().forEach { v ->
                             val layout = hdf5File?.layoutName(v) ?: ""
-                            varSizes["$filename#${v.name}#$layout"] = v.nelems
+                            varSizes["$filename#${v.name}#$layout#${ncfile.size/(1000*1000)}"] = v.nelems
                         }
                     }
                 }

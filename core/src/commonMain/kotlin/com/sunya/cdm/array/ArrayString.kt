@@ -8,6 +8,7 @@ import com.fleeksoft.charset.decodeToString
 import com.sunya.cdm.api.*
 import com.sunya.cdm.layout.IndexND
 import com.sunya.cdm.layout.IndexSpace
+import com.sunya.cdm.layout.TransferChunk
 
 // fake ByteBuffer
 class ArrayString(shape : IntArray, val values : List<String>) : ArrayTyped<String>(Datatype.STRING, shape) {
@@ -36,6 +37,12 @@ class ArrayString(shape : IntArray, val values : List<String>) : ArrayTyped<Stri
             sectionList.add( values[odo.element().toInt()])
         }
         return ArrayString(section.shape.toIntArray(), sectionList)
+    }
+
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as MutableList<String>
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
     }
 }
 

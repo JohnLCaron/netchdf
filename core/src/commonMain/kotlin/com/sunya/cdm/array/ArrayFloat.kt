@@ -37,4 +37,10 @@ class ArrayFloat(shape : IntArray, val values: FloatArray) : ArrayTyped<Float>(D
         return dst
     }
 
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as FloatArray
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
+
 }

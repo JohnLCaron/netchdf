@@ -326,20 +326,6 @@ internal class BTree2data(private val h5: H5builder, owner: String, address: Lon
         }
     }
 
-    fun makeMissingDataChunkEntry(rootNode: BTree1.Node, wantKey: LongArray): DataChunkIF {
-        return MissingDataChunk()
-    }
-
-    class MissingDataChunk() : DataChunkIF {
-        override fun childAddress() = -1L
-        override fun offsets() = longArrayOf()
-        override fun isMissing() = true
-        override fun chunkSize() = 0
-        override fun filterMask() = 0
-
-        override fun show(tiling : Tiling) : String = "missing"
-    }
-
     companion object {
         internal fun findRecord1byId(records: List<Any>, hugeObjectID: Int): Record1? {
             for (record in records) {

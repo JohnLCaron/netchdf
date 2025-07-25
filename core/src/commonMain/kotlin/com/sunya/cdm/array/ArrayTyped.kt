@@ -1,6 +1,7 @@
 package com.sunya.cdm.array
 
 import com.sunya.cdm.api.*
+import com.sunya.cdm.layout.TransferChunk
 
 // here, shape must be integers, since size cant exceed 32 bits
 // TODO ArrayTyped<T> is Iterable<T>, but Datatype<T> doesnt have to be T
@@ -45,6 +46,8 @@ abstract class ArrayTyped<T>(val datatype: Datatype<*>, val shape: IntArray) : I
 
         return dst
     } */
+
+    abstract fun transfer(dst: Any, tc: TransferChunk)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -122,6 +125,10 @@ class ArraySingle<T>(shape : IntArray, datatype : Datatype<*>, fillValueAny : An
     override fun section(section : Section) : ArrayTyped<T> {
         return ArraySingle(section.shape.toIntArray(), datatype, fillValue as Any)
     }
+
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        // hmmmm could be trouble
+    }
 }
 
 // An empty array of any shape that has no values
@@ -130,6 +137,8 @@ class ArrayEmpty<T>(shape : IntArray, datatype : Datatype<*>) : ArrayTyped<T>(da
     override fun section(section : Section) : ArrayTyped<T> {
         return ArrayEmpty(section.shape.toIntArray(), datatype)
     }
+
+    override fun transfer(dst: Any, tc: TransferChunk) {}
 }
 
 

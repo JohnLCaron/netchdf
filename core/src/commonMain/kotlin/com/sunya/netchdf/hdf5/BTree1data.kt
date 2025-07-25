@@ -22,6 +22,7 @@ internal class BTree1data(
         rootNode = BTreeNode(rootNodeAddress, null)
     }
 
+    // if other layouts like BTree2data had this interface we could use in chunkConcurrent
     fun asSequence(): Sequence<Pair<Long, DataChunk>> = sequence {
         repeat( tiling.nelems) {
             //val startingIndex = tiling.orderToIndex(it.toLong())
@@ -80,7 +81,7 @@ internal class BTree1data(
         }
 
         // this does not have missing data. Use iterator on the Btree1data class
-        //  return only the leaf nodes, in depth-first order
+        /*  return only the leaf nodes, in depth-first order
         fun asSequence(): Sequence<Pair<Int, DataChunkIF>> = sequence {
             // Handle child nodes recursively (in-order traversal)
             if (children.isNotEmpty()) {
@@ -90,7 +91,7 @@ internal class BTree1data(
             } else {  // If it's a leaf node (no children)
                 keyValues.forEach { yield(it) }
             }
-        }
+        } */
 
         fun findDataChunk(wantOrder: Int): DataChunk? {
             if (children.isNotEmpty()) { // search tree; assumes that chunks are ordered

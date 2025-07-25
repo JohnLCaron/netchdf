@@ -10,6 +10,7 @@ import com.sunya.cdm.api.Variable
 import com.sunya.cdm.api.computeSize
 import com.sunya.cdm.api.toIntArray
 import com.sunya.cdm.api.toLongArray
+import com.sunya.cdm.array.ArrayTyped
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.layout.Chunker
 import com.sunya.cdm.layout.IndexSpace
@@ -18,6 +19,7 @@ import com.sunya.cdm.layout.transferMissingNelems
 import com.sunya.cdm.util.InternalLibraryApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.produce
@@ -26,8 +28,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 
-class H5chunkConcurrent(h5file: Hdf5File, val v2: Variable<*>, wantSection: SectionPartial?) {
-    val h5 = h5file.header
+@ExperimentalCoroutinesApi
+class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: SectionPartial?) {
     val rafext: OpenFileExtended = h5.openFileExtended()
     internal val bTree: BTree1data
 
@@ -35,8 +37,6 @@ class H5chunkConcurrent(h5file: Hdf5File, val v2: Variable<*>, wantSection: Sect
     val chunkShape: IntArray
     val tiling: Tiling
     val nchunks: Long
-    // internal val rootNode: BTree1data.BTreeNode
-    // val rootAddress: Long
     val wantSpace: IndexSpace
     val allData : Boolean
 
@@ -55,10 +55,9 @@ class H5chunkConcurrent(h5file: Hdf5File, val v2: Variable<*>, wantSection: Sect
 
         // its not obvious you actually need a seperate raf
         bTree = BTree1data(rafext, mdl.btreeAddress, varShape, chunkShape.toLongArray())
-        // rootAddress = mdl.btreeAddress
     }
 
-    fun readChunks(nthreads: Int, lamda: (ArraySection<*>) -> Unit, done: () -> Unit) {
+    fun readChunks(nthreads: Int, lamda: (ArraySection<T>) -> Unit, done: () -> Unit) {
 
         runBlocking {
             val jobs = mutableListOf<Job>()
@@ -92,7 +91,7 @@ class H5chunkConcurrent(h5file: Hdf5File, val v2: Variable<*>, wantSection: Sect
     private fun CoroutineScope.launchJob(
         worker: Worker,
         input: ReceiveChannel<Pair<Long, DataChunkIF>>,
-        lamda: (ArraySection<*>) -> Unit,
+        lamda: (ArraySection<T>) -> Unit,
     ) = launch(Dispatchers.Default) {
         for (pair: Pair<Long, DataChunkIF> in input) {
             val arraySection = worker.work(pair.second)
@@ -121,7 +120,7 @@ class H5chunkConcurrent(h5file: Hdf5File, val v2: Variable<*>, wantSection: Sect
             state = OpenFileState(0L, h5type.isBE)
         }
 
-        fun work(dataChunk : DataChunkIF) : ArraySection<*>? {
+        fun work(dataChunk : DataChunkIF) : ArraySection<T>? {
             val dataSpace = IndexSpace(v2.rank, dataChunk.offsets(), vinfo.storageDims)
             if (!allData && !wantSpace.intersects(dataSpace)) {
                 return null
@@ -156,7 +155,7 @@ class H5chunkConcurrent(h5file: Hdf5File, val v2: Variable<*>, wantSection: Sect
                 h5.processDataIntoArray(ba, h5type.isBE, datatype, intersectSpace.shape.toIntArray(), h5type, elemSize)
             }
 
-            return ArraySection(array, intersectSpace.section(v2.shape))
+            return ArraySection(array as ArrayTyped<T>, intersectSpace.section(v2.shape))
         }
     }
     val debugChunking = false

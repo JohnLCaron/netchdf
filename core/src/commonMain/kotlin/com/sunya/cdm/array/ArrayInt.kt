@@ -36,4 +36,10 @@ class ArrayInt(shape : IntArray, val values: IntArray) : ArrayTyped<Int>(Datatyp
         }
         return dst
     }
+
+    override fun transfer(dst: Any, tc: TransferChunk) {
+        val src = this.values
+        val dest = dst as IntArray
+        repeat(tc.nelems) { dest[tc.destElem.toInt()+it] = src[tc.srcElem.toInt() + it] }
+    }
 }

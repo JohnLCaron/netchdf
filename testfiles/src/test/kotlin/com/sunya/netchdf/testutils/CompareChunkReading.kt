@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 //////////////////////////////////////////////////////////////////////////////////////
 // compare reading data regular and through the chunkIterate API
 
-fun compareChunkReading(filename: String, varname : String? = null) {
+fun compareChunkReading(filename: String, varname : String? = null, showStats: Boolean = false) {
     openNetchdfFile(filename).use { myfile ->
         if (myfile == null) {
             println("*** not a netchdf file = $filename")
@@ -26,10 +26,10 @@ fun compareChunkReading(filename: String, varname : String? = null) {
         var countChunks = 0
         if (varname != null) {
             val myvar = myfile.rootGroup().allVariables().find { it.fullname() == varname } ?: throw RuntimeException("cant find $varname")
-            countChunks +=  compareChunkReadingForVar(myfile, myvar)
+            countChunks +=  compareChunkReadingForVar(myfile, myvar, showStats = showStats)
         } else {
             myfile.rootGroup().allVariables().forEach { it ->
-                countChunks += compareChunkReadingForVar(myfile, it)
+                countChunks += compareChunkReadingForVar(myfile, it, showStats = showStats)
             }
         }
         if (countChunks > 0) {
@@ -38,10 +38,17 @@ fun compareChunkReading(filename: String, varname : String? = null) {
     }
 }
 
-fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>): Int {
+fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>, showStats: Boolean): Int {
     val filename = myfile.location().substringAfterLast('/')
     println("  ${myvar.nameAndShape()}")
     Stats.clear()
+
+    var sumArrayRead = 0.0
+    val time3 = measureNanoTime {
+        val arrayData = myfile.readArrayData(myvar, null)
+        sumArrayRead += sumValues(arrayData)
+    }
+    Stats.of("readArrayData", filename, "chunk").accum(time3, 1)
 
     var sumChunkIterator = 0.0
     var countChunkIterator = 0
@@ -56,17 +63,9 @@ fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>): Int {
             /* if (pair.section.toString().contains("[0:0][0:17][0:97][148:295]")) {
                 println(pair)
             } */
-
         }
     }
     Stats.of("chunkIterator", filename, "chunk").accum(time1, countChunkIterator)
-
-    var sumArrayRead = 0.0
-    val time3 = measureNanoTime {
-        val arrayData = myfile.readArrayData(myvar, null)
-        sumArrayRead += sumValues(arrayData)
-    }
-    Stats.of("readArrayData", filename, "chunk").accum(time3, 1)
     assertTrue(nearlyEquals(sumChunkIterator, sumArrayRead), "sumChunkIterator $sumChunkIterator != $sumArrayRead sumArrayRead")
 
     if (myfile is Hdf5File) {
@@ -87,7 +86,7 @@ fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>): Int {
                 }, done = { })
             }
             val countConcurrentRead = counta.load()
-            Stats.of("concurrentSum", filename, "chunk").accum(time2,countConcurrentRead )
+            Stats.of("concurrentChunks", filename, "chunk").accum(time2,countConcurrentRead )
             val sumConcurrentRead = suma.get()
             assertTrue(
                 nearlyEquals(sumConcurrentRead, sumArrayRead),
@@ -96,7 +95,7 @@ fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>): Int {
         }
     }
 
-    // Stats.show()
+    if (showStats) Stats.show()
 
     return countChunkIterator
 }
