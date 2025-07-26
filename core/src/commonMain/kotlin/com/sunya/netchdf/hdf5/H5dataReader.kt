@@ -111,7 +111,7 @@ internal fun H5builder.processCompoundData(sdataArray : ArrayStructureData, isBE
 
     sdataArray.putVlensOnHeap { member, offset ->
         val listOfArrays = mutableListOf<Array<*>>()
-        for (i in 0 until member.nelems) {
+        repeat (member.nelems) {
             val heapId = h5heap.readHeapIdentifier(sdataArray.ba, offset)
             val vlenArray = h5heap.getHeapDataArray(heapId, member.datatype, isBE)
             listOfArrays.add(vlenArray)

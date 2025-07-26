@@ -79,7 +79,6 @@ internal class LinkedByteSource(val h4 : H4builder,
     private val state : OpenFileState
     private var segno = -1
     private var segSize = 0
-    private var buffer = ByteArray(0)
     private var exhausted = false
     val totalSize: Int
 

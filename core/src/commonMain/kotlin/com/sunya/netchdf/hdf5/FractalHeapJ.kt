@@ -11,6 +11,7 @@ import kotlin.math.min
 
 val UNDEFINED_ADDRESS = -1L
 
+// the start of a port of jfhf FractalHeap. May not need it.
 class FractalHeapJ(val h5: H5builder, forWho: String, val fractalHeapAddress: Long) {
 
     val raf = h5.raf

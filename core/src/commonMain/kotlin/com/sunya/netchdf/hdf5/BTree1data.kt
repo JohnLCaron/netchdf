@@ -71,8 +71,11 @@ internal class BTree1data(
                         keyValues.add(Pair(order, DataChunk(key, childPointer)))
                         lastOrder = order
                     } else {
-                        children.add(BTreeNode(childPointer, this))
+                        children.add( BTreeNode(childPointer, this) )
                     }
+                }
+                if (children.isNotEmpty()) {
+                    lastOrder = children.last().lastOrder
                 }
             }
 
@@ -80,19 +83,7 @@ internal class BTree1data(
             // but most nodes will point to less than that number of children""
         }
 
-        // this does not have missing data. Use iterator on the Btree1data class
-        /*  return only the leaf nodes, in depth-first order
-        fun asSequence(): Sequence<Pair<Int, DataChunkIF>> = sequence {
-            // Handle child nodes recursively (in-order traversal)
-            if (children.isNotEmpty()) {
-                children.forEachIndexed { index, childNode ->
-                    yieldAll(childNode.asSequence()) // Yield all elements from the child
-                }
-            } else {  // If it's a leaf node (no children)
-                keyValues.forEach { yield(it) }
-            }
-        } */
-
+        // uses a tree search = O(log n)
         fun findDataChunk(wantOrder: Int): DataChunk? {
             if (children.isNotEmpty()) { // search tree; assumes that chunks are ordered
                 children.forEach { childNode ->
@@ -104,6 +95,10 @@ internal class BTree1data(
                 return kv?.second
             }
             return null
+        }
+
+        override fun toString(): String {
+            return "BTreeNode(address=$address, level=$level, nentries=$nentries, lastOrder=$lastOrder)"
         }
 
     }
@@ -127,5 +122,15 @@ internal class BTree1data(
     fun missingDataChunk(order: Int) : DataChunk {
         return DataChunk(DataChunkKey(order, 0, 0), -1L)
     }
+}
+
+interface DataChunkIF {
+    fun childAddress(): Long
+    fun offsets(): LongArray
+    fun isMissing(): Boolean
+    fun chunkSize(): Int
+    fun filterMask(): Int?
+
+    fun show(tiling : Tiling): String
 }
 

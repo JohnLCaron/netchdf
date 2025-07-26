@@ -92,7 +92,7 @@ class NetchdfClibExtra {
     fun testFilesAfter() {
         var skip = true
         files().forEach { filename ->
-            if (filename.equals(testData + "netchdf/martaan/RADNL_TEST_R___25PCPRR_L3__20090305T120000_20090305T120500_0001.nc")) skip = false
+            if (filename.equals(testData + "netchdf/bird/watlev_NOAA.F.C_IKE_VIMS_3D_WITHWAVE.nc")) skip = false
             if (!skip) compareDataWithClib(filename)
         }
     }

@@ -224,7 +224,7 @@ internal class DataContainerVariable(
             else -> -1 // LOOK compact?
         }
         // deal with unallocated data
-        fillValue = getFillValue(h5, v5, h5type)
+        fillValue = getFillValue(v5, h5type)
         onlyFillValue = (dataPos == -1L)
 
         when (mdl) {
@@ -287,7 +287,7 @@ internal class DataContainerVariable(
 
 }
 
-internal fun getFillValue(h5 : H5builder, v5 : H5Variable, h5type: H5TypeInfo): ByteArray {
+internal fun getFillValue(v5 : H5Variable, h5type: H5TypeInfo): ByteArray {
     // look for fill value message
     var fillValue : ByteArray? = null
     for (mess in v5.dataObject.messages) {

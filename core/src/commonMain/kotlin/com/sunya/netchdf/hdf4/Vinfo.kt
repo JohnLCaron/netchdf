@@ -75,7 +75,7 @@ internal class Vinfo(val refno: Int) : Comparable<Vinfo?> {
         return this
     }
 
-    // make sure needed info is present : call this when variable needs to be read
+    // make sure that the needed info is present: call this when variable needs to be read
     // this allows us to defer getting layout info until then
     fun setLayoutInfo(header: H4builder) {
         if (tagData == null) return

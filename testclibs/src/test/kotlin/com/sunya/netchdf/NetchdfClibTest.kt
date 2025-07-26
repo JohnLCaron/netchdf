@@ -27,15 +27,11 @@ class NetchdfClibTest {
                 .flatten().iterator()
         }
 
-        fun beforeAll() {
-            Stats.clear() // problem with concurrent tests
-        }
-
         fun afterAll() {
             if (versions.size > 0) {
                 val sversions = versions.toSortedMap()
                 sversions.keys.forEach{ println("$it = ${sversions[it]!!.size } files") }
-                val total = sversions.keys.map{ sversions[it]!!.size }.sum()
+                val total = sversions.keys.sumOf { sversions[it]!!.size }
                 println("total # files = $total")
             }
             Stats.show()
@@ -43,7 +39,7 @@ class NetchdfClibTest {
 
         private val versions = mutableMapOf<String, MutableList<String>>()
 
-        var compareMiddleSection = false
+        var compareMiddleSection = true
         var showDataRead = false
         var showData = false
         var showFailedData = false
@@ -143,7 +139,7 @@ class NetchdfClibTest {
             println("netch section $section data=$mysdata")
 
             Hdf5ClibFile(filename).use { hcfile ->
-                println("Hdf5ClibFile ${hcfile!!.type()}\n${hcfile.cdl()}")
+                println("Hdf5ClibFile ${hcfile.type()}\n${hcfile.cdl()}")
                 val v = hcfile.rootGroup().allVariables().find { it.fullname() == "/SomaticMutation/SomCall" }
                 val ncdata = hcfile.readArrayData(v!!, null)
                 assertTrue (ncdata.equals(mydata))
@@ -216,13 +212,6 @@ isThreadsafe = 0 = false
         compareDataWithClib(filename, "/GeometricParameters/Data_Fields/SolarAzimuth")
     }
 
-    @Test
-    fun testFailDataCompare4() {
-        val filename = testData + "/devcdm/netcdf4/tst_opaque_data.nc4"
-        CompareCdmWithClib(filename, true)
-        compareDataWithClib(filename)
-    }
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Test
@@ -293,6 +282,13 @@ isThreadsafe = 0 = false
     }
 
     @Test
+    fun testFailDataCompare() {
+        val filename = "/home/all/testdata/netchdf/bird/watlev_NOAA.F.C_IKE_VIMS_3D_WITHWAVE.nc"
+        compareDataWithClib(filename, varname = "time")
+    }
+
+
+    @Test
     fun testCompareDataWithClib() {
         files().forEach { filename ->
             compareDataWithClib(filename)
@@ -302,8 +298,8 @@ isThreadsafe = 0 = false
     // @Test
     fun testFilesAfter() {
         var skip = true
-        NetchdfClibExtra.Companion.files().forEach { filename ->
-            if (filename.equals(testData + "netchdf/martaan/RADNL_TEST_R___25PCPRR_L3__20090305T120000_20090305T120500_0001.nc")) skip = false
+        files().forEach { filename ->
+            if (filename.equals(testData + "netchdf/bird/watlev_NOAA.F.C_IKE_VIMS_3D_WITHWAVE.nc")) skip = false
             if (!skip) compareDataWithClib(filename)
         }
     }
@@ -347,12 +343,6 @@ fun readNetchdfData(filename: String, varname: String? = null, section: SectionP
         }
         println("--- ${myfile.type()} $filename ")
         readMyData(myfile, varname, section, showCdl)
-    }
-}
-
-fun readNcData(filename: String, varname: String? = null, section: SectionPartial? = null, showCdl : Boolean = false) {
-    NClibFile(filename).use { ncfile ->
-        readMyData(ncfile, varname, section, showCdl)
     }
 }
 
@@ -532,7 +522,6 @@ fun compareNetcdfData(myfile: Netchdf, cfile: Netchdf, varname: String?, section
     }
 }
 
-
 fun compareSelectedDataWithClib(filename: String, wanted : (Variable<*>) -> Boolean) {
     println("=============================================================")
     openNetchdfFile(filename).use { netchdf ->
@@ -590,29 +579,26 @@ fun compareOneVar(myvar: Variable<*>, myfile: Netchdf, cvar : Variable<*>, cfile
         val totalElems = mydata.shape.computeSize()
         println(" ${myvar.datatype} ${myvar.fullname()}[${filledSection}] = $totalElems elems" )
 
-        //if (myvar.datatype == Datatype.CHAR) {
-        //    compareCharData(myvar.fullname(), mydata, ncdata)
-        //} else {
-            if (!ncdata.equals(mydata)) {
-                println(" *** FAIL comparing data for variable = ${cvar.datatype} ${cvar.fullname()} ${cvar.dimensions.map { it.name }}")
-                if (NetchdfClibTest.showFailedData) {
-                    println("\n mydata = $mydata")
-                    println(" cdata = $ncdata")
-                }
-                val countDiffs = countArrayDiffs(ncdata, mydata, 10)
-                println(" *** count values differ = $countDiffs same = ${totalElems - countDiffs}")
-                assertEquals(0, countDiffs)
-                // assertEquals(ncdata, mydata, "variable ${myvar.fullname()}")
-                return
-            } else {
-                if (NetchdfClibTest.showData) {
-                    print(" ${cvar.cdl()}, ")
-                    print("\n mydata = $mydata")
-                    print(" cdata = $ncdata")
-                }
+        if (!ncdata.equals(mydata)) {
+            println(" *** FAIL comparing data for variable = ${cvar.datatype} ${cvar.fullname()} ${cvar.dimensions.map { it.name }}")
+            if (NetchdfClibTest.showFailedData) {
+                println("\n mydata = $mydata")
+                println(" cdata = $ncdata")
             }
-        // }
+            val countDiffs = countArrayDiffs(ncdata, mydata, 10)
+            println(" *** count values differ = $countDiffs same = ${totalElems - countDiffs}")
+            assertEquals(0, countDiffs)
+            // assertEquals(ncdata, mydata, "variable ${myvar.fullname()}")
+            return
+        } else {
+            if (NetchdfClibTest.showData) {
+                print(" ${cvar.cdl()}, ")
+                print("\n mydata = $mydata")
+                print(" cdata = $ncdata")
+            }
+        }
     }
+
     if (NetchdfClibTest.compareMiddleSection && cvar.nelems > 8 && cvar.datatype != Datatype.CHAR) {
         compareMiddleSection(myfile, myvar, cfile, cvar, cvar.shape)
     }
@@ -642,63 +628,18 @@ fun compareMiddleSection(myfile: Netchdf, myvar: Variable<*>, cfile: Netchdf, cv
     }
     println("  ${myvar.fullname()}[$middleSection] = ${mydata.shape.contentToString()} ${mydata.shape.computeSize()} elems")
 
-    //if (myvar.datatype == Datatype.CHAR) {
-    //    compareCharData(myvar.fullname(), mydata, ncdata)
-    //} else {
-        if (!ncdata.equals(mydata)) {
-            println(" *** FAIL comparing middle section variable = ${cvar.nameAndShape()}")
-            if (NetchdfClibTest.showFailedData) {
-                println(" mydata = $mydata")
-                println(" cdata = $ncdata")
-            } else {
-                println("\n countDifferences = ${countArrayDiffs(ncdata, mydata, 10)}")
-            }
-            assertTrue(false, "variable ${myvar.name}")
-            return
+    if (!ncdata.equals(mydata)) {
+        println(" *** FAIL comparing middle section variable = ${cvar.nameAndShape()}")
+        if (NetchdfClibTest.showFailedData) {
+            println(" mydata = $mydata")
+            println(" cdata = $ncdata")
+        } else {
+            println("\n countDifferences = ${countArrayDiffs(ncdata, mydata, 10)}")
         }
-    //}
-}
-fun compareCharDataOld(name : String, mydata: ArrayTyped<*>, ncdata: ArrayTyped<*>) {
-    if (!ArrayTyped.valuesEqual(ncdata, mydata)) {
-        println("   *** FAIL comparing char variable = ${name}")
-        print("   ncdata = $ncdata")
-        print("   mydata = $mydata")
-        assertTrue(false, "variable $name")
+        assertTrue(false, "variable ${myvar.name}")
+        return
     }
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-// just read data from myfile with iterator
-
-/*
-fun readDataIterate(myfile: Netchdf, varname: String? = null, section: SectionPartial? = null, showCdl : Boolean = false) {
-
-    if (showCdl) {
-        println(myfile.cdl())
-    }
-    if (varname != null) {
-        val myvar = myfile.rootGroup().allVariables().find { it.fullname() == varname }
-        if (myvar == null) {
-            println("cant find $varname")
-            return
-        }
-        readOneVarIterate(myvar, myfile, section)
-    } else {
-        myfile.rootGroup().allVariables().forEach { it ->
-            readOneVarIterate(it, myfile, null)
-        }
-    }
-}
-
-fun readOneVarIterate(myvar: Variable<*>, myfile: Netchdf, section: SectionPartial?) {
-    val chunkIter = myfile.chunkIterator(myvar, section, maxBytes)
-    val sum = AtomicDouble(0.0)
-    for (pair in chunkIter) {
-        sumValues(pair.array, sum)
-    }
-}
-
- */
 
 //////////////////////////////////////////////////////////////////////////////////////
 // compare reading data chunkIterate API with two Netchdf
@@ -736,7 +677,7 @@ fun compareOneVarIterate(myvar: Variable<*>, myfile: Netchdf, cvar : Variable<*>
     var sum1 = 0.0
     var countChunks = 0
     val time1 = measureNanoTime {
-        val chunkIter = myfile.chunkIterator(myvar)
+        val chunkIter = myfile.chunkIterator(myvar, wantSection = section)
         for (pair in chunkIter) {
             if (debugIter) println(" compareOneVarIterate myvar=${myvar.name} ${pair.chunkSection} = ${pair.array.shape.contentToString()}")
             sum1 += sumValues(pair.array)
@@ -748,7 +689,7 @@ fun compareOneVarIterate(myvar: Variable<*>, myfile: Netchdf, cvar : Variable<*>
     var sum2 = 0.0
     countChunks = 0
     val time2 = measureNanoTime {
-        val chunkIter = cfile.chunkIterator(cvar)
+        val chunkIter = cfile.chunkIterator(cvar, wantSection = section)
         for (pair in chunkIter) {
             if (debugIter) println(" compareOneVarIterate cvar=${cvar.name} ${pair.chunkSection} = ${pair.array.shape.contentToString()}")
             sum2 += sumValues(pair.array)
@@ -759,35 +700,8 @@ fun compareOneVarIterate(myvar: Variable<*>, myfile: Netchdf, cvar : Variable<*>
 
     if (sum1.isFinite() && sum2.isFinite()) {
         assertTrue(nearlyEquals(sum1, sum2), "$sum1 != $sum2 sum2")
-        // println("sum = $sum1")
     }
 }
-
-///////////////////////////////////////////////////////////
-
-/* fun sumValues(array : ArrayTyped<*>) {
-    if (array is ArraySingle || array is ArrayEmpty) {
-        return // test fillValue the same ??
-    }
-    // cant cast unsigned to Numbers
-    val useArray = when (array.datatype) {
-        Datatype.UBYTE -> ArrayByte(array.shape, (array as ArrayUByte).bb)
-        Datatype.USHORT -> ArrayShort(array.shape, (array as ArrayUShort).bb)
-        Datatype.UINT -> ArrayInt(array.shape, (array as ArrayUInt).bb)
-        Datatype.ULONG -> ArrayLong(array.shape, (array as ArrayULong).bb)
-        else -> array
-    }
-
-    if (useArray.datatype.isNumber) {
-        for (value in useArray) {
-            val number = (value as Number)
-            val numberd: Double = number.toDouble()
-            if (numberd.isFinite()) {
-                sum.getAndAdd(numberd)
-            }
-        }
-    }
-} */
 
 private fun sumValues(array : ArrayTyped<*>): Double {
     var result = 0.0
