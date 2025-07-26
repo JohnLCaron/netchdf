@@ -12,11 +12,12 @@ import com.sunya.netchdf.hdf4.H4builder.Companion.tagid
 import com.sunya.netchdf.hdf4.H4builder.Companion.tagidName
 import com.sunya.netchdf.hdf4.H4builder.Companion.tagidNameR
 import com.sunya.netchdf.mfhdfClib.ffm.mfhdf_h.*
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.IOException
 import java.lang.foreign.*
 import java.lang.foreign.ValueLayout.JAVA_BYTE
-import java.util.*
 
+private val showLibraryVersion = false
 private val debugVGroup = false
 private val debugVGroupDetails = false
 private val debugVSdata = false
@@ -54,6 +55,29 @@ class HCheader(val filename: String) {
             this.read_access_mode = session.allocateUtf8String("r")
             val rootBuilder = build(session)
             this.rootGroup = rootBuilder.build(null)
+            checkLibraryVersion(session)
+        }
+    }
+
+    fun checkLibraryVersion(session: Arena) {
+        val major_p = session.allocate(C_INT, 0)
+        val minor_p = session.allocate(C_INT, 0)
+        val release_p = session.allocate(C_INT, 0)
+        val info_p: MemorySegment = session.allocate(MAX_NAME) // char string[] ??
+
+        // Hgetlibversion(uint32 *majorv, uint32 *minorv, uint32 *release, char string[])
+        Hgetlibversion(major_p, minor_p, release_p, info_p)
+
+        val major = major_p[C_INT, 0]
+        val minor = minor_p[C_INT, 0]
+        val release = release_p[C_INT, 0]
+        val info = info_p.getUtf8String(0)
+
+        if (showLibraryVersion) println("Hgetlibversion major = $major minor = $minor release = $release info = $info")
+
+        val fromHfile = "HDF Version 4.2 Release 17-1, March 8, 2023" // from testclibs/src/main/java/com/sunya/netchdf/mfhdfClib/include/hfile.h
+        if (info != fromHfile) {
+            logger.warn{"HDF4 library version mismatch.  Expected '$fromHfile' but got '$info'" }
         }
     }
 
@@ -1011,6 +1035,10 @@ class HCheader(val filename: String) {
         } else {
             gb.addAttributeIfNotExists(attr)
         }
+    }
+
+    companion object {
+        val logger = KotlinLogging.logger("HCheader")
     }
 }
 

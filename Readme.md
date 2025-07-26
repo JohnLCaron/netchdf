@@ -1,5 +1,5 @@
 # netchdf
-_last updated: 7/25/2025_
+_last updated: 7/26/2025_
 
 This is a rewrite in Kotlin of parts of the devcdm and netcdf-java libraries. 
 
@@ -133,15 +133,15 @@ For HDF5 files using deflate filters, the deflate library dominates the read tim
 are about 2X slower than native code. Unless the deflate libraries get better, there's not much gain in trying to make
 other parts of the code faster.
 
-We are seeing 10x speedup on data reading. see https://github.com/JohnLCaron/netchdf/issues/189.
+We are seeing 10x speedup on data reading using coroutines for chunked data. see https://github.com/JohnLCaron/netchdf/issues/189.
 
 
 ### Goals and scope
 
 Our goal is to give read access to all the content in NetCDF, HDF5, HDF4, and HDF-EOS files.
 
-The library will be thread-safe for reading multiple files concurrently. We are also exploring concurrent reading within
-the same file.
+The library will be thread-safe for reading multiple files concurrently. We also have implemented concurrent reading within
+the same file for HDF5 chunked data.
 
 We are focussing on earth science data, and don't plan to support other uses except as a byproduct.
 
@@ -171,7 +171,8 @@ There are four levels of testing:
 1. Unit testing that doesn't require reading files.
 2. Testing with files in core/commonTest/data. These are fast and are run in a Github Action.
 3. Testing with files in TestFiles.testData in module testfiles. These are medium fast (< 11 min wallclock).
-4. Testing with files in TestFiles.testData in module testclibs. These are slow.
+4. Testing with files in TestFiles.testData in module testclibs. These are slow, mainly because the tests
+   are run serially because the C libraries are not thread safe.
 
 Currently we have 1500+ test files in the core and testdata modules:
 
@@ -229,8 +230,8 @@ With these tools we can be confident that our library gives the same results as 
 
 Currently using
 * HDF5 library version: 1.14.6.
-* netcdf-c library version 4.10.0-development of May 23 2025
-* HDF-4 library version: ???
+* Netcdf-c library version: 4.10.0-development of May 23 2025
+* HDF-4 library version: HDF Version 4.2 Release 17-1, March 8, 2023
 
 In order to run, you must install the C libraries on your computer and ad them to the LD_LIBRARY_PATH.
 
