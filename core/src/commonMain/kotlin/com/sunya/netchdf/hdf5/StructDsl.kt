@@ -26,13 +26,11 @@ internal class StructDsl(val name : String, val ba : ByteArray, val isBE: Boolea
         }
         // hmmmm
         if (fld.nelems > 1 && fld.elemSize != 1) {
-            Array(fld.nelems) { idx ->
-                when (fld.elemSize) {
-                    2 -> convertToShort(ba, fld.pos + 2 * idx, isBE)
-                    4 -> convertToInt(ba, fld.pos + 4 * idx, isBE)
-                    8 -> convertToLong(ba, fld.pos + 8 * idx, isBE)
-                    else -> getString(fld.fldName)
-                }
+            return when (fld.elemSize) {
+                2 -> Array<Short>(fld.nelems) { idx -> convertToShort(ba, fld.pos + 2 * idx, isBE) }
+                4 -> Array<Int>(fld.nelems) { idx -> convertToInt(ba, fld.pos + 4 * idx, isBE) }
+                8 -> Array<Long>(fld.nelems) { idx -> convertToLong(ba, fld.pos + 8 * idx, isBE) }
+                else -> getString(fld.fldName)
             }
         }
 

@@ -554,7 +554,7 @@ internal fun H5builder.readFilterPipelineMessage(state: OpenFileState): FilterPi
     return FilterPipelineMessage(filters)
 }
 
-internal class FilterMessage(val filterId: Int, val filterType: FilterType, val name: String, val clientValues: IntArray)
+internal data class FilterMessage(val filterId: Int, val filterType: FilterType, val name: String, val clientValues: IntArray)
 
 internal data class FilterPipelineMessage(val filters: List<FilterMessage>) : MessageHeader(MessageType.FilterPipeline) {
     override fun show() : String {

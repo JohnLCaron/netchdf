@@ -46,17 +46,17 @@ class Hdf4File(val filename : String) : Netchdf {
         }
     }
 
-    override fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
+    override fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
         if (v2.nelems == 0L) {
             return listOf<ArraySection<T>>().iterator()
         }
-        val wantSection = SectionPartial.fill(section, v2.shape)
+        val section = SectionPartial.fill(wantSection, v2.shape)
         val vinfo = v2.spObject as Vinfo
 
         return if (vinfo.isChunked) {  // LOOK isLinked?
-            H4chunkIterator(header, v2, wantSection)
+            H4chunkIterator(header, v2, section)
         } else {
-            H4maxIterator(v2, wantSection, maxElements ?: 100_000)
+            H4maxIterator(v2, section, maxElements ?: 100_000)
         }
     }
 

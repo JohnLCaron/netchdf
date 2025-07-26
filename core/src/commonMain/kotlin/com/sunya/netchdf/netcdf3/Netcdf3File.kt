@@ -29,18 +29,18 @@ internal class Netcdf3File(val filename : String) : Netchdf {
     override fun type() = header.formatType()
     override val size : Long get() = raf.size()
 
-    override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
+    override fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
         if (v2.nelems == 0L) {
             return ArrayEmpty(v2.shape.toIntArray(), v2.datatype)
         }
-        val wantSection : Section = SectionPartial.fill(section, v2.shape)
+        val section : Section = SectionPartial.fill(wantSection, v2.shape)
         val vinfo = v2.spObject as VinfoN3
         val layout = if (!v2.hasUnlimited()) {
-            LayoutRegular(vinfo.begin, vinfo.elemSize, wantSection)
+            LayoutRegular(vinfo.begin, vinfo.elemSize, section)
         } else {
-            LayoutRegularSegmented(vinfo.begin, vinfo.elemSize, header.recsize, wantSection)
+            LayoutRegularSegmented(vinfo.begin, vinfo.elemSize, header.recsize, section)
         }
-        return readDataWithLayout(layout, v2, wantSection)
+        return readDataWithLayout(layout, v2, section)
     }
 
     private fun Variable<*>.hasUnlimited() : Boolean {

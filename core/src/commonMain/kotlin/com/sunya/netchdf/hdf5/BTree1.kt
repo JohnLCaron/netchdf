@@ -6,7 +6,7 @@ import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.layout.Tiling
 import com.sunya.cdm.util.InternalLibraryApi
 
-/** B-tree, version 1, used for data (node type 1) */
+/** B-tree, version 1, used for data (node type 1)
 internal class BTree1(
     val h5: H5builder,
     val rootNodeAddress: Long,
@@ -130,7 +130,7 @@ internal class BTree1(
                 ", tile= ${tiling.tile(key.offsets).contentToString()}  idx=$idx"
     }
 
-}
+} */
 
 
 interface DataChunkIF {

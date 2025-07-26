@@ -280,6 +280,11 @@ internal class DataContainerVariable(
             else -> throw RuntimeException()
         }
     }
+
+    override fun toString(): String {
+        return "DataContainerVariable(mdl=$mdl, mfp=$mfp, onlyFillValue=$onlyFillValue)"
+    }
+
 }
 
 internal fun getFillValue(h5 : H5builder, v5 : H5Variable, h5type: H5TypeInfo): ByteArray {

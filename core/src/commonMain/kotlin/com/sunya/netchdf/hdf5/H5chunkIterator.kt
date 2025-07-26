@@ -8,9 +8,7 @@ import com.sunya.cdm.layout.IndexSpace
 import com.sunya.cdm.layout.transferMissingNelems
 import com.sunya.cdm.util.InternalLibraryApi
 
-// TODO assumes BTree1, could it include BTree2? any chunked reader ?
-//   only used in Netchdf.readChunksConcurrent
-
+/*  (to be removed)
 @OptIn(InternalLibraryApi::class)
 internal class H5chunkIterator<T>(val h5 : H5builder, val v2: Variable<T>, val wantSection : Section) : AbstractIterator<ArraySection<T>>() {
     private val debugChunking = false
@@ -86,5 +84,5 @@ internal class H5chunkIterator<T>(val h5 : H5builder, val v2: Variable<T>, val w
 
         return ArraySection(array, intersectSpace.section(v2.shape)) // LOOK use space instead of Section ??
     }
-}
+} */
 
