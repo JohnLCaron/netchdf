@@ -118,7 +118,7 @@ internal class BTree1data(
         override fun chunkSize() = key.chunkSize
         override fun filterMask() = key.filterMask
 
-        override fun show(tiling : Tiling) : String = "chunkSize=${key.chunkSize}, chunkStart=${offsets().contentToString()}" +
+        override fun show(tiling : Tiling) : String = "order=$key, chunkSize=${key.chunkSize}, chunkStart=${offsets().contentToString()}" +
                 ", tile= ${tiling.tile(offsets() ).contentToString()}"
 
         fun show() = show(tiling)

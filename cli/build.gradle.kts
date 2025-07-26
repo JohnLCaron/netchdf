@@ -3,7 +3,7 @@
 }
 
 dependencies {
-    implementation(project(":core"))
+    api(project(":core"))
 
     implementation(libs.lzf)
     implementation(libs.lz4)
@@ -33,4 +33,4 @@ tasks.register<Jar>("uberJar") {
     })
 }
 
-project.tasks["compileJava"].dependsOn(":core:allMetadataJar")
+// project.tasks["compileJava"].dependsOn(":core:allMetadataJar")

@@ -13,12 +13,13 @@ import com.sunya.cdm.array.TypedByteArray
 import com.sunya.cdm.iosp.*
 import com.sunya.cdm.util.InternalLibraryApi
 import com.sunya.netchdf.util.Deque
-import com.sunya.netchdf.util.useDefaultNThreads
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlin.String
 
 /**
  * @param strict true = make it agree with nclib if possible
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
     private val raf : OpenFileIF = OkioFile(filename)
     val header : H5builder = H5builder(raf, strict)
@@ -46,15 +47,15 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         return useNThreads ?: com.sunya.netchdf.util.useDefaultNThreads()
     }
 
-    override fun <T> readArrayData(v2: Variable<T>, section: SectionPartial?): ArrayTyped<T> {
+    override fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
         if (v2.nelems == 0L) {
             return ArrayEmpty(v2.shape.toIntArray(), v2.datatype)
         }
-        val wantSection = SectionPartial.fill(section, v2.shape)
+        val section = SectionPartial.fill(wantSection, v2.shape)
 
         // promoted attributes
         if (v2.spObject is DataContainerAttribute) {
-            return header.readRegularData(v2.spObject, v2.datatype, wantSection)
+            return header.readRegularData(v2.spObject, v2.datatype, section)
         }
 
         val vinfo = v2.spObject as DataContainerVariable
@@ -65,22 +66,24 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
                 return ArrayString(shapeMinus1, List(shapeMinus1.computeSize()) {""} ) as ArrayTyped<T>
             }
             val tba = TypedByteArray(v2.datatype, vinfo.fillValue, 0, isBE = vinfo.h5type.isBE)
-            return ArraySingle(wantSection.shape.toIntArray(), v2.datatype, tba.get(0))
+            return ArraySingle(section.shape.toIntArray(), v2.datatype, tba.get(0))
         }
 
         return try {
             if (vinfo.mdl.isCompact) {
                 val alldata = header.readCompactData(v2, v2.shape.toIntArray())
-                alldata.section(wantSection)
+                alldata.section(section)
 
             } else if (vinfo.mdl.isContiguous) {
-                header.readRegularData(vinfo, v2.datatype, wantSection)
+                header.readRegularData(vinfo, v2.datatype, section)
 
             } else if (vinfo.mdl is DataLayoutBTreeVer1) {
-                if (v2.datatype == Datatype.COMPOUND)
-                    header.readBtreeVer1(v2, wantSection)
+                // skip the concurrent read on the hard stuff
+                if (v2.datatype == Datatype.CHAR || v2.datatype == Datatype.COMPOUND || v2.datatype == Datatype.OPAQUE ||
+                    v2.datatype == Datatype.STRING || v2.datatype == Datatype.VLEN)
+                    header.readBtree1data(v2, section)
                 else
-                    readBtree1data(this, v2, section)
+                    readBtree1dataWithChunkIterator(this, v2, wantSection)
 
             } else if (vinfo.mdl is DataLayoutSingleChunk4) {
                 // header.readSingleChunk(v2, wantSection)
@@ -88,27 +91,27 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
                 val offset = IntArray(v2.rank)
                 val chunk = ChunkImpl(vinfo.mdl.heapAddress, vinfo.mdl.chunkSize, offset, vinfo.mdl.filterMask)
 
-                header.readChunkedData(v2, wantSection, listOf(chunk).iterator())
+                header.readChunkedData(v2, section, listOf(chunk).iterator())
 
             } else if (vinfo.mdl is DataLayoutImplicit4) {
                 // header.readImplicit4(v2, wantSection)
                 val index = ImplicitChunkIndex(header, varShape=v2.shape.toIntArray(), vinfo.mdl)
-                header.readChunkedData(v2, wantSection, index.chunkIterator())
+                header.readChunkedData(v2, section, index.chunkIterator())
 
             } else if (vinfo.mdl is DataLayoutFixedArray4) {
                 // header.readFixedArray4(v2, wantSection)
                 val index = FixedArrayIndex(header, varShape=v2.shape.toIntArray(), vinfo.mdl) // mdl.fixedArrayIndex
-                header.readChunkedData(v2, wantSection, index.chunkIterator())
+                header.readChunkedData(v2, section, index.chunkIterator())
 
             } else if (vinfo.mdl is DataLayoutExtensibleArray4) {
                 val index = ExtensibleArrayIndex(header, vinfo.mdl.indexAddress,
                     v2.shape.toIntArray(), vinfo.mdl.chunkDimensions)
-                header.readChunkedData(v2, wantSection, index.chunkIterator())
+                header.readChunkedData(v2, section, index.chunkIterator())
 
             } else if (vinfo.mdl is DataLayoutBtreeVer2) {
                 // header.readBtreeVer2j(v2, wantSection)
                 val index =  BTree2data(header, v2.name, vinfo.dataPos, vinfo.storageDims)
-                header.readChunkedData(v2, wantSection, index.chunkIterator())
+                header.readChunkedData(v2, section, index.chunkIterator())
 
             } else {
                 throw RuntimeException("Unsupported data layer type ${vinfo.mdl}")
@@ -119,17 +122,17 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         }
     }
 
-    override fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial?, maxElements : Int?) : Iterator<ArraySection<T>> {
+    override fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial?, maxElements : Int?) : Iterator<ArraySection<T>> {
         if (v2.nelems == 0L) {
             return listOf<ArraySection<T>>().iterator()
         }
-        val wantSection = SectionPartial.fill(section, v2.shape)
+        val section = SectionPartial.fill(wantSection, v2.shape)
         if (v2.spObject is DataContainerVariable) {
             val vinfo = v2.spObject
             if (vinfo.onlyFillValue) { // fill value only, no data
                 val tba = TypedByteArray(v2.datatype, vinfo.fillValue, 0, isBE = vinfo.h5type.isBE)
                 val single =
-                    ArraySection<T>(ArraySingle(wantSection.shape.toIntArray(), v2.datatype, tba.get(0)), wantSection)
+                    ArraySection<T>(ArraySingle(section.shape.toIntArray(), v2.datatype, tba.get(0)), section)
                 return listOf(single).iterator()
             }
         }
@@ -137,9 +140,9 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         // TODO can we use concurrent reading ??
         return if (this.layoutName(v2) == "DataLayoutBTreeVer1") {
             // H5chunkIterator(header, v2, wantSection)
-            H5chunkIterator2(this, v2, section)
+            H5chunkIterator2(this, v2, wantSection)
         } else {
-            H5maxIterator(this, v2, wantSection, maxElements ?: 100_000)
+            H5maxIterator(this, v2, section, maxElements ?: 100_000)
         }
     }
 

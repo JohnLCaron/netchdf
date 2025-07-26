@@ -22,7 +22,7 @@ class H5readConcurrentTest {
 
     @Test
     fun sanity() {
-        compareChunkReading(testData + "cdmUnitTest/formats/netcdf4/hiig_forec_20140208.nc", "salt", showStats = true)
+        compareChunkReading(testData + "cdmUnitTest/formats/netcdf4/hiig_forec_20140208.nc", "salt")
     }
 
      // array reading is failing, btree address == -1
@@ -49,15 +49,16 @@ class H5readConcurrentTest {
 
     @Test
     fun timeH5compareReading() {
-        val filename = "../core/src/commonTest/data/netcdf4/tiling.nc4"
-        // val filename = "/home/all/testdata/cdmUnitTest/formats/netcdf4/hiig_forec_20140208.nc"
-        val varname = "Turbulence_SIGMET_AIRMET" // "salt"
+        // val filename = "../core/src/commonTest/data/netcdf4/tiling.nc4"
+        val filename = "/home/all/testdata/cdmUnitTest/formats/netcdf4/hiig_forec_20140208.nc"
+        // val varname = "Turbulence_SIGMET_AIRMET" // "salt"
+        val varname = "salt"
         Hdf5File(filename).use { myfile : Hdf5File ->
             println("${myfile.type()} $filename ${myfile.size / 1000.0 / 1000.0} Mbytes")
 
             val myvar = myfile.rootGroup().allVariables().find { it.fullname() == varname }
                 ?: throw RuntimeException("cant find $varname")
-            println("  ${myvar.fullname()}")
+            println("  ${myvar.nameAndShape()} nelems = ${myvar.nelems}")
 
             val timing = mutableMapOf<Int, MutableMap<String, Double>>()
             println("readArrayData")

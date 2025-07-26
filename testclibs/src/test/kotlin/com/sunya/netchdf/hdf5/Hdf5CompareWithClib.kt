@@ -2,7 +2,6 @@ package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.api.Datatype
 import com.sunya.netchdf.*
-import com.sunya.netchdf.netcdfClib.NClibFile
 import com.sunya.netchdf.testfiles.H5Files
 import com.sunya.netchdf.testfiles.N4Files
 import com.sunya.netchdf.testutils.testData
@@ -91,6 +90,11 @@ class Hdf5Compare {
     @Test
     fun vlstra() {
         CompareCdmWithClib(testData + "devcdm/hdf5/vlstra.h5")
+    }
+
+    @Test
+    fun chunkedCompoundData() {
+        compareDataWithClib(testData + "devcdm/hdf5/cuslab.h5", varname = "ArrayOfStructures")
     }
 
     //// the following wont work opening as netcdf

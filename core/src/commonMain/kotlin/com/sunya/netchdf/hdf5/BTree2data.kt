@@ -306,6 +306,7 @@ internal class BTree2data(private val h5: H5builder, owner: String, address: Lon
         }
     }
 
+    // TODO this is probably not handling missing chunks correctly. See BTree1data, which iterates over tiles.
     fun chunkIterator() : Iterator<ChunkImpl> = ChunkIterator()
 
     private inner class ChunkIterator : AbstractIterator<ChunkImpl>() {

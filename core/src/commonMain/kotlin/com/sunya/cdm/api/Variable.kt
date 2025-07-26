@@ -51,6 +51,10 @@ data class Variable<T>(
         return "$datatype ${fullname()}${shape.contentToString()}"
     }
 
+    override fun toString(): String {
+        return "Variable(${nameAndShape()}, group=${group.fullname()}, nelems=$nelems, spObject=$spObject)"
+    }
+
     @InternalLibraryApi
     class Builder<T>(val name : String, val datatype : Datatype<T>) {
         val dimensions = mutableListOf<Dimension>()
