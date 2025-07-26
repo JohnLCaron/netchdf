@@ -657,7 +657,7 @@ internal class TagVH(icode: Int, refno: Int, offset : Long, length : Int) : Tag(
         fld_isize = IntArray(nfields) { h4.raf.readShort(state).toUShort().toInt() }
         fld_offset = IntArray(nfields) { h4.raf.readShort(state).toUShort().toInt() }
         fld_nelems = IntArray(nfields) { h4.raf.readShort(state).toUShort().toInt() } // "Order of the nth field of the Vdata (16-bit integer)"
-        for (i in 0 until nfields) {
+        repeat (nfields) {
             val slen = h4.raf.readShort(state).toInt()
             fld_name.add(h4.raf.readString(state, slen))
         }

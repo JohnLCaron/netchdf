@@ -102,7 +102,7 @@ enum class TagEnum(val desc: String, val code: Int) {
         fun byCode(code: Int): TagEnum {
             if (hashCodes == null) { // LOOK may fail when multithreading
                 val mapit = mutableMapOf<Int, TagEnum>()
-                values().forEach { mapit[it.code] = it}
+                entries.forEach { mapit[it.code] = it}
                 hashCodes = mapit
             }
             val te = hashCodes!![code]

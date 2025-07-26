@@ -59,7 +59,7 @@ internal class H5heap(val header: H5builder) {
             Datatype.ULONG, Datatype.ENUM8 -> raf.readArrayOfULong(state, heapId.nelems)
             Datatype.COMPOUND -> {
                 val members = (datatype.typedef as CompoundTypedef).members
-                val recsize = members.map { it.nelems * it.datatype.size }.sum()
+                val recsize = members.sumOf { it.nelems * it.datatype.size }
                 val ba = raf.readByteArray(state, heapId.nelems * recsize)
                 // class ArrayStructureData(shape : IntArray, val ba : ByteArray, val isBE: Boolean, val recsize : Int, val members : List<StructureMember<*>>)
                 val asd = ArrayStructureData(intArrayOf(heapId.nelems), ba, isBE, recsize, members)
@@ -112,7 +112,7 @@ internal class H5heap(val header: H5builder) {
         return HeapIdentifier(globalHeapIdAddress)
     }
 
-    // the heap id is has already been read into a byte array at given pos
+    // the heap id has already been read into a byte array at given pos
     fun readHeapIdentifier(bb: ByteArray, pos: Int): HeapIdentifier {
         return HeapIdentifier(bb, pos)
     }

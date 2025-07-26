@@ -185,7 +185,7 @@ enum class NetchdfFileFormat(private val version: Int, private val formatName: S
             val h5type = searchForwardHdf5(raf, magic)
             if (h5type != null) return h5type
 
-            val h4type = searchForwardHdf4(raf, magic)
+            val h4type = searchForwardHdf4(raf)
             return h4type ?: INVALID
         }
 
@@ -284,7 +284,7 @@ enum class NetchdfFileFormat(private val version: Int, private val formatName: S
             return null
         }
 
-        private fun searchForwardHdf4(raf: OpenFileIF, want: ByteArray): NetchdfFileFormat? {
+        private fun searchForwardHdf4(raf: OpenFileIF): NetchdfFileFormat? {
             val size: Long = raf.size()
             val state = OpenFileState(0L, true)
             var startPos = 0L

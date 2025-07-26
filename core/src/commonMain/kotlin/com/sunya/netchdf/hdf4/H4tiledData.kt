@@ -43,7 +43,7 @@ internal class H4tiledData(val h4 : H4builder, varShape : LongArray, chunk : Int
 
 internal class H4CompressedDataChunk(
     val h4 : H4builder,
-    val offsets: IntArray,  // offset index of this chunk, reletive to entire array
+    val offsets: IntArray,  // offset index of this chunk, relative to entire array
     private val compress: SpecialComp?
 ) {
     fun isMissing() = (compress == null)

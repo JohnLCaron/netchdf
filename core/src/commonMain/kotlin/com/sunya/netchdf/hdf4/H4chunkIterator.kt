@@ -14,7 +14,6 @@ internal class H4chunkIterator<T>(h4 : H4builder, val v2: Variable<*>, val wantS
 
     private val vinfo = v2.spObject as Vinfo
     private val elemSize = vinfo.elemSize
-    private val datatype = v2.datatype
     private val wantSpace = IndexSpace(wantSection)
 
     private val tiledData : H4tiledData = H4tiledData(h4, v2.shape, vinfo.chunkLengths, vinfo.chunks!!)

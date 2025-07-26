@@ -47,12 +47,12 @@ internal class Netcdf3File(val filename : String) : Netchdf {
         return this.dimensions.find { it == header.unlimitedDimension } != null
     }
 
-    override fun <T> chunkIterator(v2: Variable<T>, section: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
+    override fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial?, maxElements : Int?): Iterator<ArraySection<T>> {
         if (v2.nelems == 0L) {
             return listOf<ArraySection<T>>().iterator()
         }
-        val wantSection = SectionPartial.fill(section, v2.shape)
-        return NCmaxIterator(v2, wantSection, maxElements ?: 100_000)
+        val section = SectionPartial.fill(wantSection, v2.shape)
+        return NCmaxIterator(v2, section, maxElements ?: 100_000)
     }
 
     private inner class NCmaxIterator<T>(val v2: Variable<T>, wantSection : Section, maxElems: Int) : AbstractIterator<ArraySection<T>>() {

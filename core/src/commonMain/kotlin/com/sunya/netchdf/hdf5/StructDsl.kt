@@ -56,7 +56,7 @@ internal class StructDsl(val name : String, val ba : ByteArray, val isBE: Boolea
     fun getByte(fldName : String) : Byte {
         val fld = fldm[fldName] ?: throw IllegalArgumentException("StructDsl $name has no fld '$fldName'")
         require(fld.elemSize == 1) { fldName }
-        return ba.get(fld.pos)
+        return ba[fld.pos]
     }
     fun getShort(fldName : String) : Short {
         val fld = fldm[fldName] ?: throw IllegalArgumentException("StructDsl $name has no fld '$fldName'")
@@ -129,7 +129,7 @@ internal class StructDslBuilder(val name : String, val raf: OpenFileIF, val stat
         val tstate = state.copy(pos = startPos + from.pos)
         val ba = raf.readByteArray(tstate, from.elemSize)
         return when (from.elemSize) {
-            1 -> ba.get(0).toInt()
+            1 -> ba[0].toInt()
             2 -> convertToShort(ba, 0, state.isBE).toInt()
             4 -> convertToInt(ba, 0, state.isBE)
             8 -> convertToInt(ba, 0, state.isBE) // ignore extra bytes

@@ -311,7 +311,6 @@ internal class BTree2data(private val h5: H5builder, owner: String, address: Lon
 
     private inner class ChunkIterator : AbstractIterator<ChunkImpl>() {
         var count = 0
-        var first = true
 
         override fun computeNext() {
             if (count >= records.size) {

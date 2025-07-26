@@ -22,7 +22,7 @@ fun openNetchdfFile(filename : String, strict : Boolean = false) : Netchdf? {
             NetchdfFileFormat.NC_FORMAT_NETCDF4_CLASSIC  -> Hdf5File(useFilename, strict)
             NetchdfFileFormat.HDF5  -> Hdf5File(useFilename, strict)
             NetchdfFileFormat.HDF4  -> Hdf4File(useFilename)
-            else  -> null // throw RuntimeException(" unsupported NetcdfFileFormat $format")
+            else  -> null
         }
     }
 }
@@ -38,7 +38,7 @@ fun openNetchdfFileWithFormat(filename : String, format : NetchdfFileFormat) : N
             NetchdfFileFormat.NC_FORMAT_NETCDF4_CLASSIC  -> Hdf5File(useFilename, false)
             NetchdfFileFormat.HDF5  -> Hdf5File(useFilename, false)
             NetchdfFileFormat.HDF4  -> Hdf4File(useFilename)
-            else  -> null // throw RuntimeException(" unsupported NetcdfFileFormat $format")
+            else  -> null
         }
     }
 }

@@ -16,7 +16,7 @@ internal fun H5builder.readH5Group(facade: DataObjectFacade): H5GroupBuilder? {
     val dataObject = facade.dataObject!!
     val result = H5GroupBuilder(this, facade.parent, facade.name, dataObject, nestedObjects)
 
-    // if has a "group message", then its an "old group"
+    // if dataObject has a "group message", then its an "old group"
     if (dataObject.groupMessage != null) {
         val groupMessage = dataObject.groupMessage!!
         // check for hard links
@@ -96,18 +96,8 @@ internal fun H5builder.readGroupNew(
 internal fun H5builder.readGroupOld(groupb: H5GroupBuilder, btreeAddress: Long, nameHeapAddress: Long) {
     // track by address for hard links
     hashGroups[btreeAddress] = groupb
-
     val nameHeap = LocalHeap(this, nameHeapAddress)
 
-    /* println("readGroupOld Btree1 name = '${groupb.name}' btreeAddress = $btreeAddress nameHeapAddress = $nameHeapAddress")
-    var count = 0
-    val btree = Btree1(this, btreeAddress, groupb.name)
-    for (s in btree.symbolTableEntries) {
-        println("$count ${ nameHeap.getStringAt(s.nameOffset.toInt())}")
-        count++
-    } */
-
-    // println("readGroupOld GroupSymbolTable ")
     val symbolTable = GroupSymbolTable(btreeAddress)
     for (s in symbolTable.symbolTableEntries(this)) {
         val sname: String = nameHeap.getStringAt(s.nameOffset.toInt())
@@ -126,7 +116,7 @@ internal fun H5builder.readGroupOld(groupb: H5GroupBuilder, btreeAddress: Long, 
     }
 }
 
-// I think this is preventing cycles in the graph, ie turning it into a tree
+// I think this is preventing cycles in the graph, i.e., turning it into a tree
 internal fun H5builder.replaceSymbolicLinks(groupb: H5GroupBuilder) {
     val objList = groupb.nestedObjects
     var count = 0
@@ -204,7 +194,7 @@ internal class DataObjectFacade(val parent : H5GroupBuilder?, val name: String) 
         } else if ((local.mdt != null) and (local.mdl != null)) {
             // has a Datatype and a DataLayout message
             isVariable = true
-            // if its an enum or compound, could be a non-shared typedef. Found in non-netcdf4 hdf5 files.
+            // if DataObject is an enum or compound, could be a non-shared typedef. Found in non-netcdf4 hdf5 files.
             if (!local.mdt!!.isShared) {
                 if ((local.mdt.type == Datatype5.Enumerated) or (local.mdt.type == Datatype5.Compound)) {
                     isTypedef = true
@@ -234,7 +224,7 @@ internal class H5GroupBuilder(
 ) {
     val nestedGroupsBuilders = mutableListOf<H5GroupBuilder>()
 
-    // is this a child of that ?
+    // is this a child of that?
     fun isChildOf(that: H5GroupBuilder): Boolean {
         if (this == that) return true
         if (parent == null) return false
@@ -285,7 +275,7 @@ internal class H5GroupBuilder(
             // gather the H5typedef found in DataObjects
             if (nested.isTypedef) {
                 val mdt = nested.dataObject!!.mdt!!
-                // if its a typedef but not a variable, promote to shared
+                // if DataObject is a typedef but not a variable, promote to shared
                 if (!nested.isVariable) mdt.isShared = true
                 val typename = if (mdt.isShared) nested.dataObject!!.name else null
                 val typedef = H5typedef(typename, mdt)

@@ -232,13 +232,8 @@ class H5builder(
     //////////////////////////////////////////////////////////////
     // Internal organization of Data Objects
 
-    fun convertReferenceToDataObjectName(reference: Long): String {
-        val name = getDataObjectName(reference)
-        return name ?: reference.toString() // LOOK
-    }
-
     fun convertReferencesToDataObjectName(refArray: Array<Long>): List<String> {
-        return refArray.map { convertReferenceToDataObjectName(it) }
+        return refArray.map { getDataObjectName(it) }
     }
 
     /**
@@ -246,23 +241,10 @@ class H5builder(
      *
      * @param objId address of the data object
      * @return String the data object's name, or null if not found
-     * @throws IOException on read error
      */
     fun getDataObjectName(objId: Long): String {
         return getDataObject(objId, null)?.name ?: "unknown"
     }
-
-    /**
-     * Get a data object's name, using the objectId you get from a reference (aka hard link).
-     *
-     * @param objId address of the data object
-     * @return String the data object's name, or null if not found
-     * @throws IOException on read error
-     *
-    @Throws(IOException::class)
-    fun getDataObjectName(objId: Long): String {
-        return getDataObject(objId, null)?.name ?: "unknown"
-    } */
 
     /**
      * All access to data objects come through here, so we can cache.
@@ -370,10 +352,6 @@ class H5builder(
         return result
     }
 
-    fun readAddress(state : OpenFileState): Long {
-        return getFileOffset(readOffset(state))
-    }
-
     // size of data depends on "maximum possible number"
     fun getNumBytesFromMax(maxNumber: Long): Int {
         var maxn = maxNumber
@@ -457,7 +435,6 @@ class H5builder(
             0x1a,
             '\n'.code.toByte()
         )
-
         private val magicString = makeString(magicHeader)
 
         private const val transformReference = true
@@ -469,11 +446,11 @@ class H5builder(
            * any field called filePos or dataPos is a byte offset within the file.
            *
            * it appears theres no sure fire way to tell if the file was written by netcdf4 library
-           * 1) if one of the the NETCF4-XXX atts are set
-           * 2) dimension scales:
-           * 1) all dimensions have a dimension scale
-           * 2) they all have the same length as the dimension
-           * 3) all variables' dimensions have a dimension scale
+           *  1) if one of the the NETCF4-XXX atts are set
+           *  2) dimension scales:
+           *   1) all dimensions have a dimension scale
+           *   2) they all have the same length as the dimension
+           *   3) all variables' dimensions have a dimension scale
            */
         private const val KNOWN_FILTERS = 3
 

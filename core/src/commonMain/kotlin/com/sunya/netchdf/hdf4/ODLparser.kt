@@ -126,7 +126,7 @@ private fun transform(org: ODLgroup, trans: ODLgroup) {
     }
 
     if (wantName != null) {
-        val nestedTrans = ODLgroup(wantName!!, trans)
+        val nestedTrans = ODLgroup(wantName, trans)
         trans.nested.add(nestedTrans)
         if (org.variables.isNotEmpty()) {
             nestedTrans.variables.add(transformVariables(org))
@@ -234,7 +234,7 @@ internal fun ODLparseFromString(text: String): ODLgroup {
         } else if (line.startsWith("END")) {
             // noop
         } else if (currentObject != null) {
-            addFieldToObject(currentObject as ODLobject, line)
+            addFieldToObject(currentObject, line)
         } else {
             addFieldToGroup(currentStruct, line)
         }
@@ -399,7 +399,7 @@ class ODLparser(val rootGroup: Group.Builder, val show : Boolean = false) {
                             return false
                         }
                     } catch (ex : Exception) {
-                        logger.warn{" *** ODL cant parse dimension ${att.component1()} length ${att.component2()}"}
+                        logger.warn{" *** ODL cant parse dimension ${att.component1()} length ${att.component2()} message=${ex.message}"}
                         return false
                     }
                 }

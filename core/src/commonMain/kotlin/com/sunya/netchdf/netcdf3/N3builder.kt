@@ -137,7 +137,7 @@ internal class N3header(rafOrg: OpenFileIF, val root: Group.Builder) {
     }
 
     // Must keep dimensions in strict order
-    for (i in 0 until numdims) {
+    repeat (numdims) {
       val name = readString(raf)!!
       val len = if (isPnetcdf) raf.readLong(filePos) else raf.readInt(filePos).toLong()
 
@@ -165,7 +165,7 @@ internal class N3header(rafOrg: OpenFileIF, val root: Group.Builder) {
     }
 
     // loop over variables
-    for (i in 0 until nvars) {
+    repeat (nvars) {
       val name = readString(raf)!!
       if (debug) println("  reading variable $name pos=${filePos.pos}")
 
@@ -176,7 +176,7 @@ internal class N3header(rafOrg: OpenFileIF, val root: Group.Builder) {
       val dims = mutableListOf<Dimension>()
       val dimIdx = mutableListOf<Int>()
       val dimLengths = mutableListOf<Long>()
-      for (j in 0 until rank) {
+      repeat (rank) {
         val dimIndex: Int = if (isPnetcdf) raf.readLong(filePos).toInt() else raf.readInt(filePos)
         val dim: Dimension = root.dimensions[dimIndex]
         if (dim == unlimitedDimension) {
@@ -227,7 +227,7 @@ internal class N3header(rafOrg: OpenFileIF, val root: Group.Builder) {
       if (isPnetcdf) raf.readLong(filePos).toInt() else raf.readInt(filePos)
     }
 
-    for (i in 0 until natts) {
+    repeat (natts) {
       val name = readString(raf)!!
       val type: Int = raf.readInt(filePos)
       val att = if (type == 2) { // CHAR converted to String for Attributes

@@ -65,7 +65,7 @@ class H4builder(val raf: OpenFileIF, val valueCharset: Charset) {
             val ndd: Int = raf.readShort(state).toUShort().toInt() // number of DD blocks
             link = raf.readInt(state).toUInt().toLong() // point to the next DDH; link == 0 means no more
             var pos = state.pos
-            for (i in 0 until ndd) {
+            repeat (ndd) {
                 val tag: Tag = readTag(raf, state)
                 pos += 12
                 state.pos = pos // tag usually changed the file pointer
@@ -425,7 +425,7 @@ class H4builder(val raf: OpenFileIF, val valueCharset: Charset) {
         }
 
         // compute the vb and add to the group
-        val vb = SDread(tagNDG!!, vgroup.name, group, dims) ?: return
+        val vb = SDread(tagNDG, vgroup.name, group, dims) ?: return
 
         // tagVH's on the group tag (TagVGroup) might be attributes
         tagVHs.forEach {
@@ -558,7 +558,7 @@ class H4builder(val raf: OpenFileIF, val valueCharset: Charset) {
             println("   **** NO dimensions found for SD ${dataGroup.refCode()}")
             return null
         }
-        val dimSDD = dimSDDout!!
+        val dimSDD = dimSDDout
 
         val nt: TagNT = tagidMap[tagid(dimSDD.data_nt_ref, TagEnum.NT.code)] as TagNT?
             ?: throw IllegalStateException("   **** NO nt tag found for SD ${dataGroup.refCode()}")

@@ -152,7 +152,7 @@ internal val dataLayoutNames = listOf(
 
 // debugging
 internal fun getDataLayoutCounts() : MutableMap<String, Int> {
-    return dataLayoutNames.map { Pair(it!!, 0) }.toMap().toMutableMap()
+    return dataLayoutNames.associate { Pair(it!!, 0) }.toMutableMap()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

@@ -7,6 +7,7 @@ import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.util.InternalLibraryApi
 import java.util.*
 
+// DataLayoutExtensibleArray4
 class ExtensibleArrayIndex(val h5: H5builder, address: Long, datasetDimensions: IntArray, chunkDimensions: IntArray) {
     val raf = h5.raf
 

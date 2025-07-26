@@ -42,7 +42,7 @@ internal fun H5builder.makeH5TypeInfo(mdt: DatatypeMessage, typedef : Typedef? =
 // all the info you need to create a CDM Datatype
 internal data class H5TypeInfo(val isVlenString: Boolean, val isRefObject : Boolean, val datatype5 : Datatype5, val elemSize : Int,
                                val signed : Boolean, val isBE : Boolean, val mdtAddress : Long, val mdtHash : Int,
-                               val base : H5TypeInfo? = null, val typedef : Typedef? = null, val dims : IntArray? = null) {
+                               val base : H5TypeInfo? = null, val typedef : Typedef? = null) {
 
     fun datatype(): Datatype<*> {
         return when (datatype5) {

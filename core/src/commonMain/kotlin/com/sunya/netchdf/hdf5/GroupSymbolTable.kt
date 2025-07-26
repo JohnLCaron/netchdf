@@ -28,7 +28,7 @@ internal class GroupSymbolTable(val btreeAddress : Long) {
         val nentries = h5.raf.readShort(state)
 
         var posEntry = state.pos
-        for (i in 0 until nentries) {
+        repeat (nentries.toInt()) {
             val entry = h5.readSymbolTable(state)
             posEntry += entry.dataSize
             if (entry.objectHeaderAddress != 0L) { // skip zeroes, probably a bug in HDF5 file format or docs, or me
@@ -58,7 +58,6 @@ internal fun H5builder.readSymbolTable(state : OpenFileState) : SymbolTableEntry
         }
     if (debugGroup) rootEntry.show()
 
-    // may be btree or symbolic link
     var btreeAddress : Long? = null
     var nameHeapAddress : Long? = null
     var linkOffset : Int? = null
