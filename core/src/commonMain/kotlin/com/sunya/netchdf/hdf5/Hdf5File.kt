@@ -48,6 +48,10 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
     }
 
     override fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
+        return readArrayData(v2, wantSection, recurse = false)
+    }
+
+    fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?, recurse: Boolean): ArrayTyped<T> {
         if (v2.nelems == 0L) {
             return ArrayEmpty(v2.shape.toIntArray(), v2.datatype)
         }
@@ -79,17 +83,17 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
 
             } else if (vinfo.mdl is DataLayoutBTreeVer1) {
                 // skip the concurrent read on the hard stuff
-                if (v2.datatype == Datatype.CHAR || v2.datatype == Datatype.COMPOUND || v2.datatype == Datatype.OPAQUE ||
-                    v2.datatype == Datatype.STRING || v2.datatype == Datatype.VLEN)
+                if ( recurse || (v2.datatype == Datatype.CHAR || v2.datatype == Datatype.COMPOUND || v2.datatype == Datatype.OPAQUE ||
+                    v2.datatype == Datatype.STRING || v2.datatype == Datatype.VLEN))
                     header.readBtree1data(v2, section)
                 else
-                    readBtree1dataWithChunkIterator(this, v2, wantSection)
+                    readBtreeWithChunkIterator(this, v2, wantSection)
 
             } else if (vinfo.mdl is DataLayoutSingleChunk4) {
                 // header.readSingleChunk(v2, wantSection)
                 // internal data class DataLayoutSingleChunk4(val flags: Byte, val chunkDimensions: IntArray, val chunkSize: Int, val heapAddress: Long, val filterMask: Int?) : DataLayoutMessage() {
                 val offset = IntArray(v2.rank)
-                val chunk = ChunkImpl(vinfo.mdl.heapAddress, vinfo.mdl.chunkSize, offset, vinfo.mdl.filterMask)
+                val chunk = makeDataChunk(vinfo.mdl.heapAddress, vinfo.mdl.chunkSize, offset, vinfo.mdl.filterMask?: 0)
 
                 header.readChunkedData(v2, section, listOf(chunk).iterator())
 
@@ -109,9 +113,15 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
                 header.readChunkedData(v2, section, index.chunkIterator())
 
             } else if (vinfo.mdl is DataLayoutBtreeVer2) {
-                // header.readBtreeVer2j(v2, wantSection)
-                val index =  BTree2data(header.makeFileExtended(), v2.name, vinfo.dataPos, v2.shape, vinfo.storageDims)
-                header.readChunkedData(v2, section, index.chunkIterator())
+                // skip the concurrent reading on the hard stuff
+                if ( recurse || (v2.datatype == Datatype.CHAR || v2.datatype == Datatype.COMPOUND || v2.datatype == Datatype.OPAQUE ||
+                    v2.datatype == Datatype.STRING || v2.datatype == Datatype.VLEN)) {
+                    val index =  BTree2data(header.makeFileExtended(), v2.name, vinfo.dataPos, v2.shape, vinfo.storageDims)
+                    header.readChunkedData(v2, section, index.chunkIterator())
+                    // header.readBtree1data(v2, section)
+                } else {
+                    readBtreeWithChunkIterator(this, v2, wantSection)
+                }
 
             } else {
                 throw RuntimeException("Unsupported data layer type ${vinfo.mdl}")
@@ -137,8 +147,8 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
             }
         }
 
-        // TODO can we use concurrent reading ??
-        return if (this.layoutName(v2) == "DataLayoutBTreeVer1") {
+        val layoutName = this.layoutName(v2)
+        return if (layoutName == "DataLayoutBTreeVer1" || layoutName == "DataLayoutBtreeVer2") {
             // H5chunkIterator(header, v2, wantSection)
             H5chunkIterator2(this, v2, wantSection)
         } else {
