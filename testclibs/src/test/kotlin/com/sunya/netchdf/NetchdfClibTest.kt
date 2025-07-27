@@ -19,7 +19,8 @@ class NetchdfClibTest {
 
     companion object {
         fun files(): Iterator<String> {
-            return sequenceOf(N3Files.files().asSequence(),
+            return sequenceOf(
+                N3Files.files().asSequence(),
                     N4Files.files().asSequence(),
                     H5Files.files().asSequence(),
                     H4Files.files().asSequence(),

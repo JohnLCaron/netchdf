@@ -113,7 +113,7 @@ class CountVersions {
                     if (ncfile == null) {
                         println("Not a netchdf file=$filename ")
                     } else {
-                        val hdf5File = if (ncfile.type() in listOf("netcdf4", "hdf")) {
+                        val hdf5File = if (ncfile.type() in listOf("netcdf4", "hdf5")) {
                             ncfile as Hdf5File
                         } else null
 
@@ -156,7 +156,7 @@ class CountVersions {
                     if (ncfile == null) {
                         println("Not a netchdf file=$filename ")
                     } else {
-                        if (ncfile.type() in listOf("netcdf4", "hdf")) {
+                        if (ncfile.type() in listOf("netcdf4", "hdf5")) {
                             val hdf5File = ncfile as Hdf5File
                             ncfile.rootGroup().allVariables().forEach { v ->
                                 val layout = hdf5File.layoutName(v)
@@ -177,6 +177,41 @@ class CountVersions {
             .toMap()
 
         sorted.keys.forEach{ println("${sorted[it]} == '$it'") }
+    }
+
+    @Test
+    fun showLayoutTypes() {
+        fun h5files(): Iterator<String> {
+            return sequenceOf(
+                //N4Files.Companion.files().asSequence(),
+                //H5Files.Companion.files().asSequence(),
+                //NetchdfExtraFiles.Companion.files(false).asSequence(),
+                JhdfFiles.Companion.files().asSequence(),
+            )
+                .flatten()
+                .iterator()
+        }
+
+        h5files().forEach { filename ->
+            try {
+                openNetchdfFile(filename).use { ncfile ->
+                    if (ncfile == null) {
+                        println("Not a netchdf file=$filename ")
+                    } else {
+                        val filetype = ncfile.type()
+                        if (filetype in listOf("netcdf4", "hdf5")) {
+                            val hdf5File = ncfile as Hdf5File
+                            ncfile.rootGroup().allVariables().forEach { v ->
+                                val layout = hdf5File.layoutName(v)
+                                println("  ${layout} ${v.nameAndShape()} ($filename)")
+                            }
+                        }
+                    }
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
+        }
     }
 
     data class LayoutCount(var count: Int = 0, var size: Long = 0)

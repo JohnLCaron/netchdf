@@ -7,14 +7,12 @@ import com.sunya.cdm.api.Datatype
 import com.sunya.cdm.api.Section
 import com.sunya.cdm.api.SectionPartial
 import com.sunya.cdm.api.Variable
-import com.sunya.cdm.api.computeSize
 import com.sunya.cdm.api.toIntArray
 import com.sunya.cdm.api.toLongArray
 import com.sunya.cdm.array.ArrayTyped
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.layout.Chunker
 import com.sunya.cdm.layout.IndexSpace
-import com.sunya.cdm.layout.Tiling
 import com.sunya.cdm.layout.transferMissingNelems
 import com.sunya.cdm.util.InternalLibraryApi
 import kotlinx.coroutines.CoroutineScope
@@ -29,32 +27,26 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 
 @ExperimentalCoroutinesApi
-class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: SectionPartial?) {
-    val rafext: OpenFileExtended = h5.openFileExtended()
-    internal val bTree: BTree1data
+class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: SectionPartial?, ) {
+    val rafext: OpenFileExtended = h5.makeFileExtended()
 
     val varShape = v2.shape
-    val chunkShape: IntArray
-    val tiling: Tiling
-    val nchunks: Long
     val wantSpace: IndexSpace
     val allData : Boolean
+    val chunks: DataChunkSequence
 
     init {
         val useSection = SectionPartial.fill(wantSection, v2.shape)
         wantSpace = IndexSpace(useSection)
         allData = (wantSection == null) || (useSection == Section(varShape))
 
-        require(v2.spObject is DataContainerVariable)
-        val vinfo = v2.spObject
-        require(vinfo.mdl is DataLayoutBTreeVer1)
-        val mdl = vinfo.mdl
-        chunkShape = mdl.chunkDims
-        tiling = Tiling(varShape, chunkShape.toLongArray())
-        nchunks = tiling.tileShape.computeSize()
-
-        // its not obvious you actually need a seperate raf
-        bTree = BTree1data(rafext, mdl.btreeAddress, varShape, chunkShape.toLongArray())
+        val vinfo = v2.spObject as DataContainerVariable
+        if (vinfo.mdl is DataLayoutBTreeVer1) {
+            val mdl = vinfo.mdl
+            chunks = BTree1data(rafext, mdl.btreeAddress, varShape, mdl.chunkDims.toLongArray())
+        } else {
+            throw RuntimeException()
+        }
     }
 
     fun readChunks(nthreads: Int, lamda: (ArraySection<T>) -> Unit, done: () -> Unit) {
@@ -62,7 +54,7 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
         runBlocking {
             val jobs = mutableListOf<Job>()
             val workers = mutableListOf<Worker>()
-            val chunkProducer = produceChunks(bTree.asSequence())
+            val chunkProducer = produceChunks(chunks.asSequence())
             repeat(nthreads) {
                 val worker = Worker()
                 jobs.add( launchJob(worker, chunkProducer, lamda))
@@ -73,12 +65,11 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
             joinAll(*jobs.toTypedArray())
             workers.forEach { it.rafext.close() }
         }
-        rafext.close()
         done()
     }
 
     private var count = 0
-    private fun CoroutineScope.produceChunks(producer: Sequence<Pair<Long, DataChunkIF>>): ReceiveChannel<Pair<Long, DataChunkIF>> =
+    private fun CoroutineScope.produceChunks(producer: Sequence<DataChunkIF>): ReceiveChannel<DataChunkIF> =
         produce {
             for (dataChunk in producer) {
                 send(dataChunk)
@@ -90,18 +81,18 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
 
     private fun CoroutineScope.launchJob(
         worker: Worker,
-        input: ReceiveChannel<Pair<Long, DataChunkIF>>,
+        input: ReceiveChannel<DataChunkIF>,
         lamda: (ArraySection<T>) -> Unit,
     ) = launch(Dispatchers.Default) {
-        for (pair: Pair<Long, DataChunkIF> in input) {
-            val arraySection = worker.work(pair.second)
+        for (chunk: DataChunkIF in input) {
+            val arraySection = worker.work(chunk)
             if (arraySection != null) lamda(arraySection)
             yield()
         }
     }
 
     private inner class Worker() {
-        val rafext: OpenFileExtended = h5.openFileExtended() // here we need a seperate raf
+        val rafext: OpenFileExtended = h5.openNewFileExtended() // here we need a seperate raf
 
         val vinfo: DataContainerVariable = v2.spObject as DataContainerVariable
         val h5type: H5TypeInfo
@@ -129,14 +120,14 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
             val intersectSpace = if (useEntireChunk) dataSpace else wantSpace.intersect(dataSpace)
 
             val ba = if (dataChunk.isMissing()) {
-                if (debugChunking) println("   missing ${dataChunk.show(tiling)}")
+                if (debugChunking) println("   missing ${dataChunk.show()}")
                 val sizeBytes = intersectSpace.totalElements * elemSize
                 val bbmissing = ByteArray(sizeBytes.toInt())
                 transferMissingNelems(vinfo.fillValue, intersectSpace.totalElements.toInt(), bbmissing, 0)
                 if (debugChunking) println("   missing transfer ${intersectSpace.totalElements} fillValue=${vinfo.fillValue}")
                 bbmissing
             } else {
-                if (debugChunking) println("  chunkIterator=${dataChunk.show(tiling)}")
+                if (debugChunking) println("  chunkIterator=${dataChunk.show()}")
                 state.pos = dataChunk.childAddress()
                 val rawdata = rafext.readByteArray(state, dataChunk.chunkSize())
                 val filteredData = if (dataChunk.filterMask() == null) rawdata else filters.apply(rawdata, dataChunk.filterMask()!!)

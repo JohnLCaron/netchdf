@@ -233,7 +233,7 @@ Currently using
 * Netcdf-c library version: 4.10.0-development of May 23 2025
 * HDF-4 library version: HDF Version 4.2 Release 17-1, March 8, 2023
 
-In order to run, you must install the C libraries on your computer and ad them to the LD_LIBRARY_PATH.
+In order to run these tests, you must install the C libraries on your computer and add them to the LD_LIBRARY_PATH.
 
 ### Data Model notes
 

@@ -28,7 +28,7 @@ class Btree1dataTest {
                 ?: throw RuntimeException("cant find $varname")
             println("  ${myvar.nameAndShape()}")
 
-            val rafext: OpenFileExtended = h5.openFileExtended()
+            val rafext: OpenFileExtended = h5.openNewFileExtended()
             val varShape = myvar.shape
 
             require(myvar.spObject is DataContainerVariable)
@@ -41,7 +41,7 @@ class Btree1dataTest {
             val bTreeExt = BTree1data(rafext, mdl.btreeAddress, varShape, chunkShape.toLongArray())
             // val rootNode = bTreeExt.rootNode()
 
-            bTreeExt.asSequence().forEach { (key, value) -> println("Key: ${key}, Value: ${value.show()}") }
+            bTreeExt.asSequence().forEach { value -> println("Value: ${value.show()}") }
         }
     }
 

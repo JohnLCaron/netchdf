@@ -3,8 +3,10 @@
 package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.api.computeSize
+import com.sunya.cdm.api.toLongArray
 import com.sunya.cdm.iosp.OpenFileIF
 import com.sunya.cdm.iosp.OpenFileState
+import com.sunya.cdm.layout.Tiling
 import com.sunya.cdm.util.InternalLibraryApi
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.math.ceil
@@ -13,7 +15,7 @@ import kotlin.math.ceil
 // jhdf
 
 @OptIn(InternalLibraryApi::class)
-internal fun readChunkedDataLayoutMessageV4(builder: H5builder, raf: OpenFileIF, state : OpenFileState) : DataLayoutMessage {
+internal fun readChunkedDataLayoutV4(builder: H5builder, raf: OpenFileIF, state : OpenFileState) : DataLayoutMessage {
     val version = raf.readByte(state)
     val layoutClass = raf.readByte(state)
     val flags = raf.readByte(state)
@@ -273,8 +275,26 @@ fun chunkIndexToChunkOffset(chunkIndex: Int, chunkDimensions: IntArray, datasetD
 }
 
 ////////////////////////////////////////////////////
-data class ChunkImpl(val address: Long, val size: Int, val chunkOffset: IntArray, val filterMask: Int?) {
+data class ChunkImpl(val address: Long, val size: Int, val chunkOffset: IntArray, val filterMask: Int?, val tiling: Tiling?=null): DataChunkIF {
     override fun toString(): String {
         return "ChunkImpl(address=$address, size=$size, chunkOffset=${chunkOffset.contentToString()}, filterMask=$filterMask)"
+    }
+
+    override fun childAddress() = address
+
+    override fun offsets() = chunkOffset.toLongArray()
+
+    override fun isMissing() = address <= 0
+
+    override fun chunkSize() = size
+
+    override fun filterMask() = filterMask ?: 0
+
+    override fun show(): String {
+        return if (tiling != null) {
+            "address=$address, chunkSize=${size}, chunkStart=${offsets().contentToString()}, tile= ${tiling.tile(offsets() ).contentToString()}"
+        } else {
+            "TODO(Not yet implemented)"
+        }
     }
 }

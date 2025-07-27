@@ -130,7 +130,7 @@ internal fun H5builder.readDataLayoutMessage(state : OpenFileState) : DataLayout
         }
 
         // version 4, layoutClass = 2 is too complex for structdls
-        return readChunkedDataLayoutMessageV4(this, raf, state)
+        return readChunkedDataLayoutV4(this, raf, state)
     }
     throw RuntimeException()
 }
