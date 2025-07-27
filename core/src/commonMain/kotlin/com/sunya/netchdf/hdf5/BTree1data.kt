@@ -13,7 +13,8 @@ internal class BTree1data(
     rootNodeAddress: Long,
     varShape: LongArray,
     chunkShape: LongArray,
-) {
+) : DataChunkSequence {
+
     val tiling = Tiling(varShape, chunkShape)
     val ndimStorage = chunkShape.size
     val rootNode: BTreeNode
@@ -23,11 +24,11 @@ internal class BTree1data(
     }
 
     // if other layouts like BTree2data had this interface we could use in chunkConcurrent
-    fun asSequence(): Sequence<Pair<Long, DataChunk>> = sequence {
+    override fun asSequence(): Sequence<DataChunkIF> = sequence {
         repeat( tiling.nelems) {
             //val startingIndex = tiling.orderToIndex(it.toLong())
             //val indexSpace = IndexSpace(startingIndex, tiling.chunk)
-            yield(Pair(it.toLong(), findDataChunk(it) ?: missingDataChunk(it)))
+            yield(findDataChunk(it) ?: missingDataChunk(it))
         }
     }
 
@@ -35,7 +36,6 @@ internal class BTree1data(
         return rootNode.findDataChunk(order)
     }
 
-    // here both internal and leaf are the same structure
     // Btree nodes Level 1A1 - Version 1 B-trees
     inner class BTreeNode(val address: Long, val parent: BTreeNode?)  {
         var level: Int = 0
@@ -105,32 +105,21 @@ internal class BTree1data(
 
     data class DataChunkKey(val order: Int, val chunkSize: Int, val filterMask : Int)
 
-    //  childAddress = data chunk (level 1) else a child node
     inner class DataChunk(val key : DataChunkKey, val childAddress : Long) : DataChunkIF {
         override fun childAddress() = childAddress
         override fun offsets() = tiling.orderToIndex(key.order.toLong())
         override fun isMissing() = (childAddress <= 0L) // may be 0 or -1
         override fun chunkSize() = key.chunkSize
         override fun filterMask() = key.filterMask
+        override fun show() = show(tiling)
 
-        override fun show(tiling : Tiling) : String = "order=$key, chunkSize=${key.chunkSize}, chunkStart=${offsets().contentToString()}" +
+        fun show(tiling : Tiling) : String = "order=$key, chunkSize=${key.chunkSize}, chunkStart=${offsets().contentToString()}" +
                 ", tile= ${tiling.tile(offsets() ).contentToString()}"
 
-        fun show() = show(tiling)
     }
 
     fun missingDataChunk(order: Int) : DataChunk {
         return DataChunk(DataChunkKey(order, 0, 0), -1L)
     }
-}
-
-interface DataChunkIF {
-    fun childAddress(): Long
-    fun offsets(): LongArray
-    fun isMissing(): Boolean
-    fun chunkSize(): Int
-    fun filterMask(): Int?
-
-    fun show(tiling : Tiling): String
 }
 

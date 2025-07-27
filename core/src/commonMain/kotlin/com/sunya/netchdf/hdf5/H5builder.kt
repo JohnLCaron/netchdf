@@ -407,9 +407,13 @@ class H5builder(
         return Attribute(att.name, Datatype.STRING, svalues)
     }
 
-    fun openFileExtended(): OpenFileExtended {
+    fun openNewFileExtended(): OpenFileExtended {
         val raf: OpenFileIF = OkioFile(this.raf.location())
         return OpenFileExtended(raf, this.isLengthLong, this.isOffsetLong, this.superblockStart)
+    }
+
+    fun makeFileExtended(): OpenFileExtended {
+        return OpenFileExtended(this.raf, this.isLengthLong, this.isOffsetLong, this.superblockStart)
     }
 
     companion object {

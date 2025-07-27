@@ -110,7 +110,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
 
             } else if (vinfo.mdl is DataLayoutBtreeVer2) {
                 // header.readBtreeVer2j(v2, wantSection)
-                val index =  BTree2data(header, v2.name, vinfo.dataPos, vinfo.storageDims)
+                val index =  BTree2data(header.makeFileExtended(), v2.name, vinfo.dataPos, v2.shape, vinfo.storageDims)
                 header.readChunkedData(v2, section, index.chunkIterator())
 
             } else {
