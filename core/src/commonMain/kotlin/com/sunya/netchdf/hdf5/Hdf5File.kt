@@ -84,10 +84,14 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
             } else if (vinfo.mdl is DataLayoutBTreeVer1) {
                 // skip the concurrent read on the hard stuff
                 if ( recurse || (v2.datatype == Datatype.CHAR || v2.datatype == Datatype.COMPOUND || v2.datatype == Datatype.OPAQUE ||
-                    v2.datatype == Datatype.STRING || v2.datatype == Datatype.VLEN))
-                    header.readBtree1data(v2, section)
-                else
-                    readBtreeWithChunkIterator(this, v2, wantSection)
+                    v2.datatype == Datatype.STRING || v2.datatype == Datatype.VLEN)) {
+                    val btree1 =
+                        BTree1data(header.makeFileExtended(),  vinfo.dataPos, v2.shape, vinfo.storageDims)
+                    header.readChunkedData(v2, section, btree1.chunkIterator())
+                    // header.readBtree1data(v2, section)
+                } else {
+                    readChunkedDataWithIterator(this, v2, wantSection)
+                }
 
             } else if (vinfo.mdl is DataLayoutSingleChunk4) {
                 // header.readSingleChunk(v2, wantSection)
@@ -118,9 +122,8 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
                     v2.datatype == Datatype.STRING || v2.datatype == Datatype.VLEN)) {
                     val index =  BTree2data(header.makeFileExtended(), v2.name, vinfo.dataPos, v2.shape, vinfo.storageDims)
                     header.readChunkedData(v2, section, index.chunkIterator())
-                    // header.readBtree1data(v2, section)
                 } else {
-                    readBtreeWithChunkIterator(this, v2, wantSection)
+                    readChunkedDataWithIterator(this, v2, wantSection)
                 }
 
             } else {

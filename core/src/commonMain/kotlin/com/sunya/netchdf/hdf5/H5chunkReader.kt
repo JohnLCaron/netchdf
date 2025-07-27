@@ -13,7 +13,7 @@ import kotlin.collections.iterator
 
 private val debugChunking = false
 
-// DataLayoutSingleChunk4, DataLayoutImplicit4, DataLayoutFixedArray4, DataLayoutExtensibleArray4, DataLayoutBtreeVer2
+// DataLayoutSingleChunk4, DataLayoutImplicit4, DataLayoutFixedArray4, DataLayoutExtensibleArray4, DataLayoutBtreeVer2, DataLayoutBTreeVer1
 internal fun <T> H5builder.readChunkedData(v2: Variable<T>, wantSection: Section, index: Iterator<DataChunk>): ArrayTyped<T> {
     val vinfo = v2.spObject as DataContainerVariable
     val h5type = vinfo.h5type
@@ -62,59 +62,7 @@ internal fun <T> H5builder.readChunkedData(v2: Variable<T>, wantSection: Section
     }
 }
 
-/* DataLayoutBTreeVer1 (to be removed)
-internal fun <T> H5builder.readBtreeVer1(v2: Variable<T>, wantSection: Section): ArrayTyped<T> {
-    val vinfo = v2.spObject as DataContainerVariable
-    val h5type = vinfo.h5type
-
-    val elemSize = vinfo.storageDims[vinfo.storageDims.size - 1].toInt() // last one is always the elements size
-    val datatype = vinfo.h5type.datatype()
-
-    val wantSpace = IndexSpace(wantSection)
-    val sizeBytes = wantSpace.totalElements * elemSize
-    if (sizeBytes <= 0 || sizeBytes >= Int.MAX_VALUE) {
-        throw RuntimeException("Illegal nbytes to read = $sizeBytes")
-    }
-    val ba = ByteArray(sizeBytes.toInt())
-
-    val btree1 = if (vinfo.mdl is DataLayoutBTreeVer1)
-        BTree1(this, vinfo.dataPos, 1, vinfo.storageDims.size)
-    else
-        throw RuntimeException("Unsupprted mdl ${vinfo.mdl}")
-
-    val tiledData = H5TiledData1(btree1, v2.shape, vinfo.storageDims)
-    val filters = FilterPipeline(v2.name, vinfo.mfp, vinfo.h5type.isBE)
-    if (debugChunking) println(" readChunkedData tiles=${tiledData.tiling}")
-
-    var transferChunks = 0
-    val state = OpenFileState(0L, vinfo.h5type.isBE)
-    for (dataChunk: DataChunk in tiledData.dataChunks(wantSpace)) { // : Iterable<BTree1New.DataChunkEntry>
-        val dataSection = IndexSpace(v2.rank, dataChunk.offsets(), vinfo.storageDims)
-        val chunker = Chunker(dataSection, wantSpace) // each DataChunkEntry has its own Chunker iteration
-        if (dataChunk.isMissing()) {
-            if (debugChunking) println("   missing ${dataChunk.show(tiledData.tiling)}")
-            chunker.transferMissing(vinfo.fillValue, elemSize, ba)
-        } else {
-            if (debugChunking) println("   chunk=${dataChunk.show(tiledData.tiling)}")
-            state.pos = dataChunk.childAddress()
-            val chunkData = this.raf.readByteArray(state, dataChunk.chunkSize())
-            val filteredData = if (dataChunk.filterMask() == null) chunkData
-            else filters.apply(chunkData, dataChunk.filterMask()!!)
-            chunker.transferBA(filteredData, 0, elemSize, ba, 0)
-            transferChunks += chunker.transferChunks
-        }
-    }
-
-    val shape = wantSpace.shape.toIntArray()
-
-    return if (h5type.datatype5 == Datatype5.Vlen) {
-        this.processVlenIntoArray(h5type, shape, ba, wantSpace.totalElements.toInt(), elemSize)
-    } else {
-        this.processDataIntoArray(ba, vinfo.h5type.isBE, datatype, shape, h5type, elemSize) as ArrayTyped<T>
-    }
-} */
-
-// DataLayoutBTreeVer1
+/* DataLayoutBTreeVer1
 internal fun <T> H5builder.readBtree1data(v2: Variable<T>, wantSection: Section): ArrayTyped<T> {
     val vinfo = v2.spObject as DataContainerVariable
     val h5type = vinfo.h5type
@@ -130,19 +78,6 @@ internal fun <T> H5builder.readBtree1data(v2: Variable<T>, wantSection: Section)
     val ba = ByteArray(sizeBytes.toInt())
 
     val btree1 = if (vinfo.mdl is DataLayoutBTreeVer1) {
-        // internal class BTree1(
-        //    val h5: H5builder,
-        //    val rootNodeAddress: Long,
-        //    val nodeType : Int,  // 0 = group/symbol table, 1 = raw data chunks
-        //    val ndimStorage: Int? = null // TODO allowed to be null ??
-        //)
-        // BTree1(this, vinfo.dataPos, 1, vinfo.storageDims.size)
-        // internal class BTree1data(
-        //    val raf: OpenFileExtended,
-        //    rootNodeAddress: Long,
-        //    varShape: LongArray,
-        //    chunkShape: LongArray,
-        //)
         val rafext: OpenFileExtended = this.openNewFileExtended()
         BTree1data(rafext, vinfo.dataPos, v2.shape, vinfo.storageDims)
     } else {
@@ -179,10 +114,9 @@ internal fun <T> H5builder.readBtree1data(v2: Variable<T>, wantSection: Section)
     } else {
         this.processDataIntoArray(ba, vinfo.h5type.isBE, datatype, shape, h5type, elemSize) as ArrayTyped<T>
     }
-}
+} */
 
-// DataLayoutBTreeVer1 using chunkIterator
-internal fun <T> readBtreeWithChunkIterator(hdf5: Hdf5File, v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
+internal fun <T> readChunkedDataWithIterator(hdf5: Hdf5File, v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
     val vinfo = v2.spObject as DataContainerVariable
     val datatype = vinfo.h5type.datatype()
 

@@ -1,5 +1,5 @@
 # netchdf
-_last updated: 7/26/2025_
+_last updated: 7/27/2025_
 
 This is a rewrite in Kotlin of parts of the devcdm and netcdf-java libraries. 
 
@@ -293,6 +293,10 @@ local to the variable they are referenced by.
 * Attributes can be of type REFERENCE, with value the full path name of the referenced dataset.
 * Vlen Strings are stored on the heap. Fixed length Strings are kept in byte arrays. 
   This is more or less invisible to the User.
+
+We have very limited example data for the "version 4" data layouts of HDF5 (much thanks to James Mudd and 
+the [jhdf project](https://github.com/jamesmudd/jhdf) for code and the test data we do have.) 
+Please carefully check results if you have this kind of data, and send us samples to test! 
 
 #### Compare with HDF4 data model
 * All data access is unified under the netchdf API.
