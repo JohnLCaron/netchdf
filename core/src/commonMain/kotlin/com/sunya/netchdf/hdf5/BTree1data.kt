@@ -27,11 +27,11 @@ internal class BTree1data(
     // if other layouts like BTree2data had this interface we could use in chunkConcurrent
     override fun asSequence(): Sequence<DataChunk> = sequence {
         repeat( tiling.nelems) {
-            //val startingIndex = tiling.orderToIndex(it.toLong())
-            //val indexSpace = IndexSpace(startingIndex, tiling.chunk)
             yield(findDataChunk(it) ?: missingDataChunk(it, tiling))
         }
     }
+
+    fun chunkIterator(): Iterator<DataChunk> = asSequence().iterator()
 
     internal fun findDataChunk(order: Int): DataChunk? {
         return rootNode.findDataChunk(order)
