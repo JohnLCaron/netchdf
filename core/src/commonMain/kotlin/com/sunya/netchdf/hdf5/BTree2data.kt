@@ -2,7 +2,6 @@ package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.api.computeSize
 import com.sunya.cdm.api.toIntArray
-import com.sunya.cdm.api.toLongArray
 import com.sunya.cdm.iosp.OpenFileState
 
 import com.sunya.cdm.layout.Tiling
@@ -57,17 +56,16 @@ internal class BTree2data(
         rootNode = BTreeNode(rootNodeAddress, treeDepth, numberOfRecordsInRoot, totalNumberOfRecordsInTree, null)
     }
 
-    override fun asSequence(): Sequence<DataChunkIF> = sequence {
+    override fun asSequence(): Sequence<DataChunk> = sequence {
         repeat( tiling.nelems) {
-            //val startingIndex = tiling.orderToIndex(it.toLong())
-            //val indexSpace = IndexSpace(startingIndex, tiling.chunk)
-            yield(findDataChunk(it) ?: missingDataChunk(it))
+            val result = findDataChunk(it) ?: missingDataChunk(it, tiling)
+            yield(result)
         }
     }
 
-    fun chunkIterator(): Iterator<DataChunkIF> = asSequence().iterator()
+    fun chunkIterator(): Iterator<DataChunk> = asSequence().iterator()
 
-    internal fun findDataChunk(order: Int): DataChunkIF? {
+    internal fun findDataChunk(order: Int): DataChunk? {
         return rootNode.findDataChunk(order)
     }
 
@@ -75,7 +73,7 @@ internal class BTree2data(
         var level: Int = 0
         var nentries: Int = 0
 
-        val keyValues = mutableListOf<Pair<Int, ChunkImpl>>() // tile order to DataChunk
+        val dataChunks = mutableListOf<DataChunk>() // tile order to DataChunk
         val children = mutableListOf<BTreeNode>()
 
         var lastOrder : Int = 0
@@ -99,10 +97,9 @@ internal class BTree2data(
 
                 // dataChunks
                 repeat(numberOfRecords) {
-                    val chunkImpl = readRecord(state, nodeType)
-                    val order = tiling.order(chunkImpl.chunkOffset.toLongArray()).toInt()
-                    keyValues.add(Pair(order, chunkImpl))
-                    lastOrder = order
+                    val dataChunk = readRecord(state, nodeType)
+                    dataChunks.add(dataChunk)
+                    lastOrder = dataChunk.order
                 }
 
                 // children
@@ -128,16 +125,20 @@ internal class BTree2data(
         }
 
         // uses a tree search = O(log n)
-        fun findDataChunk(wantOrder: Int): DataChunkIF? {
+        // this algo assume you dont have xised noted, not true
+        fun findDataChunk(wantOrder: Int): DataChunk? {
+            if (dataChunks.isNotEmpty()) {
+                val result = dataChunks.find { it.order == wantOrder }
+                if (result != null) return result
+            }
             if (children.isNotEmpty()) { // search tree; assumes that chunks are ordered
                 children.forEach { childNode ->
                     if (wantOrder <= childNode.lastOrder)
                         return childNode.findDataChunk(wantOrder)
                 }
-            } else {  // If it's a leaf node (no children)
-                val kv = keyValues.find { it.first == wantOrder }
-                return kv?.second
-            }
+            } //else {  // If it's a leaf node (no children)
+              //  return dataChunks.find { it.order == wantOrder }
+            //}
             return null
         }
 
@@ -147,7 +148,7 @@ internal class BTree2data(
 
     } // BTreeNode
 
-    fun readRecord(state: OpenFileState, type: Int): ChunkImpl {
+    fun readRecord(state: OpenFileState, type: Int): DataChunk {
         return when (type) {
             10 -> readRecord10(state, chunkShape.toIntArray(), chunkSize.toInt())
             11 -> readRecord11(state, chunkShape.toIntArray() )
@@ -156,7 +157,7 @@ internal class BTree2data(
     }
 
     // Type 10 Record Layout - Non-filtered Dataset Chunks
-    fun readRecord10(state: OpenFileState, dims : IntArray, chunkSize: Int): ChunkImpl {
+    fun readRecord10(state: OpenFileState, dims : IntArray, chunkSize: Int): DataChunk {
         val address = raf.readOffset(state)
 
         // This field is the scaled offset of the chunk within the dataset. n is the number of dimensions for the dataset.
@@ -169,13 +170,13 @@ internal class BTree2data(
         //		for (int i = 0; i < chunkOffset.length; i++) {
         //			chunkOffset[i] = Utils.readBytesAsUnsignedInt(buffer, 8) * datasetInfo.getChunkDimensions()[i];
         //		}
-        val chunkOffset = scaledOffset.mapIndexed { idx, scaledOffset -> (scaledOffset * dims[idx]).toInt() }
+        val chunkOffset = scaledOffset.mapIndexed { idx, scaledOffset -> (scaledOffset * dims[idx]).toInt() }.toIntArray()
 
-        return ChunkImpl(address, chunkSize, chunkOffset.toIntArray(), null, tiling)
+        return DataChunk(address, chunkSize, chunkOffset, null, tiling.order(chunkOffset), tiling)
     }
 
     // Type 11 Record Layout - Filtered Dataset Chunks
-    fun readRecord11(state: OpenFileState, dims : IntArray): ChunkImpl {
+    fun readRecord11(state: OpenFileState, dims : IntArray): DataChunk {
         val address = raf.readOffset(state)
 
         // LOOK variable size based on what? "Chunk Size (variable size; at most 8 bytes)"
@@ -200,14 +201,10 @@ internal class BTree2data(
         //		for (int i = 0; i < chunkOffset.length; i++) {
         //			chunkOffset[i] = Utils.readBytesAsUnsignedInt(buffer, 8) * datasetInfo.getChunkDimensions()[i];
         //		}
-        val chunkOffset = scaledOffset.mapIndexed { idx, scaledOffset -> (scaledOffset * dims[idx]).toInt() }
+        val chunkOffset = scaledOffset.mapIndexed { idx, scaledOffset -> (scaledOffset * dims[idx]).toInt() }.toIntArray()
 
         // ChunkImpl(val address: Long, val size: Int, val chunkOffset: IntArray, val filterMask: Int?)
-        return ChunkImpl(address, chunkSize, chunkOffset.toIntArray(), filterMask, tiling)
-    }
-
-    fun missingDataChunk(order: Int) : ChunkImpl {
-        return ChunkImpl(-1, 0, tiling.orderToIndex(order.toLong()).toIntArray(), 0, tiling)
+        return DataChunk(address, chunkSize, chunkOffset, filterMask, tiling.order(chunkOffset), tiling)
     }
 
 }

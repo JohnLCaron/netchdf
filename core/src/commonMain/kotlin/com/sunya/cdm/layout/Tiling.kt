@@ -1,6 +1,8 @@
 package com.sunya.cdm.layout
 
 import com.sunya.cdm.api.computeSize
+import com.sunya.cdm.api.toIntArray
+import com.sunya.cdm.api.toLongArray
 import kotlin.math.max
 import kotlin.math.min
 
@@ -83,6 +85,10 @@ class Tiling(varShape: LongArray, chunkShape: LongArray) {
         return order
     }
 
+    fun order(index: IntArray): Int {
+        return order(index.toLongArray()).toInt()
+    }
+
     /** inverse of order() */
     fun orderToIndex(order: Long) : LongArray {
         // calculate tile
@@ -97,6 +103,10 @@ class Tiling(varShape: LongArray, chunkShape: LongArray) {
 
         // convert to index
         return index(tile)
+    }
+
+    fun orderToIndex(order: Int) : IntArray {
+        return orderToIndex(order.toLong()).toIntArray()
     }
 
     /**

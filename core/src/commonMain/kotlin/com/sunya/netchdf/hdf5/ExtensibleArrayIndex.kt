@@ -34,7 +34,7 @@ class ExtensibleArrayIndex(val h5: H5builder, address: Long, datasetDimensions: 
 
     private var elementCounter = 0
 
-    val chunks: MutableList<ChunkImpl>
+    val chunks: MutableList<DataChunk>
 
     init {
         this.headerAddress = address
@@ -81,7 +81,7 @@ class ExtensibleArrayIndex(val h5: H5builder, address: Long, datasetDimensions: 
         dataBlockSize = h5.readLength(state).toInt()
 
         val maxIndexSet: Int = h5.readLength(state).toInt()
-        chunks = ArrayList<ChunkImpl>(maxIndexSet)
+        chunks = mutableListOf<DataChunk>()
 
         numberOfElements = h5.readLength(state).toInt()
 
@@ -262,9 +262,9 @@ class ExtensibleArrayIndex(val h5: H5builder, address: Long, datasetDimensions: 
                 if (filtered) {
                     val chunkSizeInBytes: Int = h5.readVariableSizeUnsigned(state, extensibleArrayElementSize - h5.sizeOffsets - 4).toInt()
                     val filterMask = raf.readInt(state)
-                    chunks.add(ChunkImpl(chunkAddress, chunkSizeInBytes, chunkOffset, filterMask))
+                    chunks.add(makeDataChunk(chunkAddress, chunkSizeInBytes, chunkOffset, filterMask))
                 } else {
-                    chunks.add( ChunkImpl(chunkAddress, unfilteredChunkSize, chunkOffset, null))
+                    chunks.add( makeDataChunk(chunkAddress, unfilteredChunkSize, chunkOffset, 0, null))
                 }
                 elementCounter++
                 return true
@@ -328,6 +328,6 @@ class ExtensibleArrayIndex(val h5: H5builder, address: Long, datasetDimensions: 
         }
     }
 
-    fun chunkIterator() : Iterator<ChunkImpl> = chunks.iterator()
+    fun chunkIterator() : Iterator<DataChunk> = chunks.iterator()
 
 }

@@ -3,12 +3,12 @@
 package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.api.computeSize
-import com.sunya.cdm.api.toLongArray
 import com.sunya.cdm.iosp.OpenFileIF
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.layout.Tiling
 import com.sunya.cdm.util.InternalLibraryApi
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlin.Long
 import kotlin.math.ceil
 
 // DataLayoutMessage version 4, layout class 2 (chunked), chunkIndexingType 1-5
@@ -81,7 +81,7 @@ internal class FixedArrayIndex(val h5: H5builder, val varShape: IntArray, val md
     val dataAddress: Long
 
     val state = OpenFileState(h5.getFileOffset(mdl.indexAddress), false)
-    val chunks = mutableListOf<ChunkImpl>()
+    val chunks = mutableListOf<DataChunk>()
 
     init {
         val raf = h5.raf
@@ -200,7 +200,7 @@ internal class FixedArrayIndex(val h5: H5builder, val varShape: IntArray, val md
         val filterMask = raf.readInt(state) // java.util.BitSet = java.util.BitSet.valueOf(byteArrayOf(bb.get(), bb.get(), bb.get(), bb.get()))
         val chunkOffset: IntArray = chunkIndexToChunkOffset(chunkIndex, chunkDimensions, varShape)
 
-        chunks.add(ChunkImpl(chunkAddress, chunkSizeInBytes, chunkOffset, filterMask))
+        chunks.add(makeDataChunk(chunkAddress, chunkSizeInBytes, chunkOffset, filterMask))
     }
 
     fun readUnfiltered(raf: OpenFileIF, state : OpenFileState, chunkIndex: Int) {
@@ -208,10 +208,10 @@ internal class FixedArrayIndex(val h5: H5builder, val varShape: IntArray, val md
         val chunkOffset: IntArray = chunkIndexToChunkOffset(chunkIndex, chunkDimensions, varShape)
         val unfilteredChunkSize = mdl.chunkDimensions.computeSize()
 
-        chunks.add(ChunkImpl(chunkAddress, unfilteredChunkSize, chunkOffset, null))
+        chunks.add(makeDataChunk(chunkAddress, unfilteredChunkSize, chunkOffset, 0, null))
     }
 
-    fun chunkIterator() : Iterator<ChunkImpl> = chunks.iterator()
+    fun chunkIterator() : Iterator<DataChunk> = chunks.iterator()
 
     companion object {
         val logger = KotlinLogging.logger("ChunkedDataLayoutMessageV4")
@@ -224,16 +224,16 @@ internal class ImplicitChunkIndex(val h5: H5builder, val varShape: IntArray, val
     val chunkDimensions = IntArray(mdl.chunkDimensions.size - 1) { mdl.chunkDimensions[it] } // remove the element "dimension"
     var chunkSize = mdl.chunkDimensions.computeSize()
 
-    fun getAllChunks(): List<ChunkImpl> {
+    fun getAllChunks(): List<DataChunk> {
         val totalChunks: Int = totalChunks(varShape, chunkDimensions)
-        val chunks = mutableListOf<ChunkImpl>()
+        val chunks = mutableListOf<DataChunk>()
         for (i in 0..< totalChunks) {
             chunks.add(
-                ChunkImpl(
+                makeDataChunk(
                     mdl.address + i * chunkSize,
                     chunkSize,
                     chunkIndexToChunkOffset(i, chunkDimensions, varShape),
-                    null)
+                    0, null)
                 )
         }
         return chunks
@@ -250,7 +250,7 @@ internal class ImplicitChunkIndex(val h5: H5builder, val varShape: IntArray, val
         return chunks
     }
 
-    fun chunkIterator() : Iterator<ChunkImpl> = getAllChunks().iterator()
+    fun chunkIterator() : Iterator<DataChunk> = getAllChunks().iterator()
 
 }
 
@@ -275,26 +275,6 @@ fun chunkIndexToChunkOffset(chunkIndex: Int, chunkDimensions: IntArray, datasetD
 }
 
 ////////////////////////////////////////////////////
-data class ChunkImpl(val address: Long, val size: Int, val chunkOffset: IntArray, val filterMask: Int?, val tiling: Tiling?=null): DataChunkIF {
-    override fun toString(): String {
-        return "ChunkImpl(address=$address, size=$size, chunkOffset=${chunkOffset.contentToString()}, filterMask=$filterMask)"
-    }
 
-    override fun childAddress() = address
-
-    override fun offsets() = chunkOffset.toLongArray()
-
-    override fun isMissing() = address <= 0
-
-    override fun chunkSize() = size
-
-    override fun filterMask() = filterMask ?: 0
-
-    override fun show(): String {
-        return if (tiling != null) {
-            "address=$address, chunkSize=${size}, chunkStart=${offsets().contentToString()}, tile= ${tiling.tile(offsets() ).contentToString()}"
-        } else {
-            "TODO(Not yet implemented)"
-        }
-    }
-}
+fun makeDataChunk(address: Long, size: Int, chunkOffset: IntArray, filterMask: Int, tiling: Tiling?=null) =
+    DataChunk( address, size, chunkOffset, filterMask, 0, tiling)

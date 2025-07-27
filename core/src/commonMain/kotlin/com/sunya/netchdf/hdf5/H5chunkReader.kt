@@ -14,7 +14,7 @@ import kotlin.collections.iterator
 private val debugChunking = false
 
 // DataLayoutSingleChunk4, DataLayoutImplicit4, DataLayoutFixedArray4, DataLayoutExtensibleArray4, DataLayoutBtreeVer2
-internal fun <T> H5builder.readChunkedData(v2: Variable<T>, wantSection: Section, index: Iterator<DataChunkIF>): ArrayTyped<T> {
+internal fun <T> H5builder.readChunkedData(v2: Variable<T>, wantSection: Section, index: Iterator<DataChunk>): ArrayTyped<T> {
     val vinfo = v2.spObject as DataContainerVariable
     val h5type = vinfo.h5type
 
@@ -35,8 +35,8 @@ internal fun <T> H5builder.readChunkedData(v2: Variable<T>, wantSection: Section
     val state = OpenFileState(0L, vinfo.h5type.isBE)
 
     // just run through all the chunks, we wont read any that we dont need
-    for (dataChunk: DataChunkIF in index) {
-        val dataSection = IndexSpace(v2.rank, dataChunk.offsets(), vinfo.storageDims)
+    for (dataChunk: DataChunk in index) {
+        val dataSection = IndexSpace(v2.rank, dataChunk.offsets.toLongArray(), vinfo.storageDims)
         val chunker = Chunker(dataSection, wantSpace) // each DataChunkEntry has its own Chunker iteration
         if (chunker.nelems > 0) {
             if (dataChunk.isMissing()) {
@@ -44,10 +44,10 @@ internal fun <T> H5builder.readChunkedData(v2: Variable<T>, wantSection: Section
                 chunker.transferMissing(vinfo.fillValue, elemSize, ba)
             } else {
                 // println(dataChunk.show())
-                state.pos = dataChunk.childAddress()
-                val rawdata = this.raf.readByteArray(state, dataChunk.chunkSize())
-                val filteredData = if (vinfo.mfp == null || dataChunk.filterMask() == null) rawdata
-                else filters.apply(rawdata, dataChunk.filterMask())
+                state.pos = dataChunk.address
+                val rawdata = this.raf.readByteArray(state, dataChunk.size)
+                val filteredData = if (vinfo.mfp == null || dataChunk.filterMask == null) rawdata
+                            else filters.apply(rawdata, dataChunk.filterMask)
                 chunker.transferBA(filteredData, 0, elemSize, ba, 0)
             }
         }
@@ -88,7 +88,7 @@ internal fun <T> H5builder.readBtreeVer1(v2: Variable<T>, wantSection: Section):
 
     var transferChunks = 0
     val state = OpenFileState(0L, vinfo.h5type.isBE)
-    for (dataChunk: DataChunkIF in tiledData.dataChunks(wantSpace)) { // : Iterable<BTree1New.DataChunkEntry>
+    for (dataChunk: DataChunk in tiledData.dataChunks(wantSpace)) { // : Iterable<BTree1New.DataChunkEntry>
         val dataSection = IndexSpace(v2.rank, dataChunk.offsets(), vinfo.storageDims)
         val chunker = Chunker(dataSection, wantSpace) // each DataChunkEntry has its own Chunker iteration
         if (dataChunk.isMissing()) {
@@ -156,17 +156,17 @@ internal fun <T> H5builder.readBtree1data(v2: Variable<T>, wantSection: Section)
     var transferChunks = 0
     val state = OpenFileState(0L, vinfo.h5type.isBE)
     btree1.asSequence().forEach { dataChunk ->
-        val dataSection = IndexSpace(v2.rank, dataChunk.offsets(), vinfo.storageDims)
+        val dataSection = IndexSpace(v2.rank, dataChunk.offsets.toLongArray(), vinfo.storageDims)
         val chunker = Chunker(dataSection, wantSpace) // each DataChunkEntry has its own Chunker iteration
         if (dataChunk.isMissing()) {
             if (debugChunking) println("   missing ${dataChunk.show()}")
             chunker.transferMissing(vinfo.fillValue, elemSize, ba)
         } else {
             if (debugChunking) println("   chunk=${dataChunk.show()}")
-            state.pos = dataChunk.childAddress()
-            val chunkData = this.raf.readByteArray(state, dataChunk.chunkSize())
-            val filteredData = if (dataChunk.filterMask() == null) chunkData
-            else filters.apply(chunkData, dataChunk.filterMask()!!)
+            state.pos = dataChunk.address
+            val chunkData = this.raf.readByteArray(state, dataChunk.size)
+            val filteredData = if (dataChunk.filterMask == null) chunkData
+            else filters.apply(chunkData, dataChunk.filterMask)
             chunker.transferBA(filteredData, 0, elemSize, ba, 0)
             transferChunks += chunker.transferChunks
         }
@@ -182,7 +182,7 @@ internal fun <T> H5builder.readBtree1data(v2: Variable<T>, wantSection: Section)
 }
 
 // DataLayoutBTreeVer1 using chunkIterator
-internal fun <T> readBtree1dataWithChunkIterator(hdf5: Hdf5File, v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
+internal fun <T> readBtreeWithChunkIterator(hdf5: Hdf5File, v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
     val vinfo = v2.spObject as DataContainerVariable
     val datatype = vinfo.h5type.datatype()
 

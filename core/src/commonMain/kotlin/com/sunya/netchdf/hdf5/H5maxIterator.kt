@@ -18,7 +18,7 @@ internal class H5maxIterator<T>(val h5: Hdf5File, val v2: Variable<T>, val wantS
             if (debugChunking) println("  chunk=${indexSection}")
 
             val section = indexSection.section(v2.shape)
-            val array = h5.readArrayData(v2, SectionPartial( section.ranges))
+            val array = h5.readArrayData(v2, SectionPartial( section.ranges), recurse = true)
             setNext(ArraySection(array, section))
         } else {
             done()

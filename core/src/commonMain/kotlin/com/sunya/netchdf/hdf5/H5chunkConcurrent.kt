@@ -44,8 +44,10 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
         if (vinfo.mdl is DataLayoutBTreeVer1) {
             val mdl = vinfo.mdl
             chunks = BTree1data(rafext, mdl.btreeAddress, varShape, mdl.chunkDims.toLongArray())
+        } else if (vinfo.mdl is DataLayoutBtreeVer2) {
+            chunks = BTree2data(rafext, v2.name, vinfo.dataPos, v2.shape, vinfo.storageDims)
         } else {
-            throw RuntimeException()
+            throw RuntimeException("H5chunkConcurrent cant read ${vinfo.mdl.javaClass.simpleName}")
         }
     }
 
@@ -69,7 +71,7 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
     }
 
     private var count = 0
-    private fun CoroutineScope.produceChunks(producer: Sequence<DataChunkIF>): ReceiveChannel<DataChunkIF> =
+    private fun CoroutineScope.produceChunks(producer: Sequence<DataChunk>): ReceiveChannel<DataChunk> =
         produce {
             for (dataChunk in producer) {
                 send(dataChunk)
@@ -81,10 +83,10 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
 
     private fun CoroutineScope.launchJob(
         worker: Worker,
-        input: ReceiveChannel<DataChunkIF>,
+        input: ReceiveChannel<DataChunk>,
         lamda: (ArraySection<T>) -> Unit,
     ) = launch(Dispatchers.Default) {
-        for (chunk: DataChunkIF in input) {
+        for (chunk: DataChunk in input) {
             val arraySection = worker.work(chunk)
             if (arraySection != null) lamda(arraySection)
             yield()
@@ -111,8 +113,8 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
             state = OpenFileState(0L, h5type.isBE)
         }
 
-        fun work(dataChunk : DataChunkIF) : ArraySection<T>? {
-            val dataSpace = IndexSpace(v2.rank, dataChunk.offsets(), vinfo.storageDims)
+        fun work(dataChunk : DataChunk) : ArraySection<T>? {
+            val dataSpace = IndexSpace(v2.rank, dataChunk.offsets.toLongArray(), vinfo.storageDims)
             if (!allData && !wantSpace.intersects(dataSpace)) {
                 return null
             }
@@ -128,9 +130,9 @@ class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: 
                 bbmissing
             } else {
                 if (debugChunking) println("  chunkIterator=${dataChunk.show()}")
-                state.pos = dataChunk.childAddress()
-                val rawdata = rafext.readByteArray(state, dataChunk.chunkSize())
-                val filteredData = if (dataChunk.filterMask() == null) rawdata else filters.apply(rawdata, dataChunk.filterMask()!!)
+                state.pos = dataChunk.address
+                val rawdata = rafext.readByteArray(state, dataChunk.size)
+                val filteredData = if (dataChunk.filterMask == null) rawdata else filters.apply(rawdata, dataChunk.filterMask)
                 if (useEntireChunk) {
                     filteredData
                 } else {

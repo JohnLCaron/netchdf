@@ -44,6 +44,11 @@ class JhdfCompare {
         compareDataWithJhdf("../core/src/commonTest/data/jhdf/chunked_v4_datasets.hdf5", "/btree_v2/large_int16", true, true)
     }
 
+    @Test
+    fun problem() {
+        compareDataWithJhdf("../core/src/commonTest/data/jhdf/100B_max_dimension_size.hdf5", "100B-MaxSize", true, true)
+    }
+
     // @Test horror show
     fun superblocks() {
         compareDataWithJhdf(testData + "netcdf-c_hdf5_superblocks/netcdf-c-test-files/v1_8/nc_test4__tst_xplatform2_3.nc", null, true, true)

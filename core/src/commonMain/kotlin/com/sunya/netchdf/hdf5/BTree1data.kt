@@ -2,6 +2,7 @@
 
 package com.sunya.netchdf.hdf5
 
+import com.sunya.cdm.api.toIntArray
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.layout.Tiling
 import com.sunya.cdm.util.InternalLibraryApi
@@ -24,11 +25,11 @@ internal class BTree1data(
     }
 
     // if other layouts like BTree2data had this interface we could use in chunkConcurrent
-    override fun asSequence(): Sequence<DataChunkIF> = sequence {
+    override fun asSequence(): Sequence<DataChunk> = sequence {
         repeat( tiling.nelems) {
             //val startingIndex = tiling.orderToIndex(it.toLong())
             //val indexSpace = IndexSpace(startingIndex, tiling.chunk)
-            yield(findDataChunk(it) ?: missingDataChunk(it))
+            yield(findDataChunk(it) ?: missingDataChunk(it, tiling))
         }
     }
 
@@ -41,7 +42,7 @@ internal class BTree1data(
         var level: Int = 0
         var nentries: Int = 0
 
-        val keyValues = mutableListOf<Pair<Int, DataChunk>>() // tile order to DataChunk
+        val dataChunks = mutableListOf<DataChunk>() // tile order to DataChunk
         val children = mutableListOf<BTreeNode>()
 
         var lastOrder : Int = 0
@@ -63,12 +64,13 @@ internal class BTree1data(
                 repeat(nentries) {
                     val chunkSize = raf.readInt(state)
                     val filterMask = raf.readInt(state)
-                    val inner = LongArray(ndimStorage) { j -> raf.readLong(state) }
-                    val order = tiling.order(inner).toInt()
-                    val key = DataChunkKey(order, chunkSize, filterMask)
+                    val chunkOffset = LongArray(ndimStorage) { j -> raf.readLong(state) }
+                    val order = tiling.order(chunkOffset).toInt()
                     val childPointer = raf.readAddress(state) // 4 or 8 bytes, then add fileOffset
                     if (level == 0) {
-                        keyValues.add(Pair(order, DataChunk(key, childPointer)))
+                        // data class DataChunk(val address: Long, val size: Int, val chunkOffset: IntArray, val filterMask: Int?, val order: Int, val tiling: Tiling?=null) {
+                        val dataChunk = DataChunk(childPointer, chunkSize, chunkOffset.toIntArray(), filterMask, order, tiling)
+                        dataChunks.add(dataChunk)
                         lastOrder = order
                     } else {
                         children.add( BTreeNode(childPointer, this) )
@@ -91,8 +93,7 @@ internal class BTree1data(
                         return childNode.findDataChunk(wantOrder)
                 }
             } else {  // If it's a leaf node (no children)
-                val kv = keyValues.find { it.first == wantOrder }
-                return kv?.second
+                return dataChunks.find { it.order == wantOrder }
             }
             return null
         }
@@ -101,25 +102,6 @@ internal class BTree1data(
             return "BTreeNode(address=$address, level=$level, nentries=$nentries, lastOrder=$lastOrder)"
         }
 
-    }
-
-    data class DataChunkKey(val order: Int, val chunkSize: Int, val filterMask : Int)
-
-    inner class DataChunk(val key : DataChunkKey, val childAddress : Long) : DataChunkIF {
-        override fun childAddress() = childAddress
-        override fun offsets() = tiling.orderToIndex(key.order.toLong())
-        override fun isMissing() = (childAddress <= 0L) // may be 0 or -1
-        override fun chunkSize() = key.chunkSize
-        override fun filterMask() = key.filterMask
-        override fun show() = show(tiling)
-
-        fun show(tiling : Tiling) : String = "order=$key, chunkSize=${key.chunkSize}, chunkStart=${offsets().contentToString()}" +
-                ", tile= ${tiling.tile(offsets() ).contentToString()}"
-
-    }
-
-    fun missingDataChunk(order: Int) : DataChunk {
-        return DataChunk(DataChunkKey(order, 0, 0), -1L)
     }
 }
 
