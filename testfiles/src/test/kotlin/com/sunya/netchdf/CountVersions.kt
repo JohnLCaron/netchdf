@@ -68,6 +68,9 @@ class CountVersions {
                     } else {
                         val paths = versions.getOrPut(ncfile.type()) { mutableListOf() }
                         paths.add(filename)
+                        if (ncfile.type() == "netcdf3.5")
+                            println("ncfile.type() file=$filename ")
+
                     }
                 }
             } catch (e: Throwable) {

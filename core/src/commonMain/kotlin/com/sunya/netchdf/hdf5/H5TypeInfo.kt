@@ -57,6 +57,7 @@ internal data class H5TypeInfo(val isVlenString: Boolean, val isRefObject : Bool
 
             Datatype5.Floating ->
                 when (this.elemSize) {
+                    // 2 -> "half float" see jhdf
                     4 -> Datatype.FLOAT
                     8 -> Datatype.DOUBLE
                     else -> throw RuntimeException("Bad hdf5 float type with size= ${this.elemSize}")

@@ -60,7 +60,7 @@ class Btree1dataTest {
             for (nthreads in listOf(1, 2, 4, 8, 10, 16, 20, 24, 32, 40, 48)) {
                 val time = measureNanoTime {
                     //     fun readChunks(nthreads: Int, lamda: (ArraySection<*>) -> Unit, done: () -> Unit) {
-                    val reader = H5chunkConcurrent(myfile.header, myvar, null)
+                    val reader = H5readChunkedConcurrent(myfile.header, myvar, null)
                     reader.readChunks(nthreads, lamda = { asect: ArraySection<*> ->
                         // println(" section = ${asect.chunkSection}")
                     }, { }, )

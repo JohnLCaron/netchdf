@@ -22,13 +22,8 @@ class ArrayStructureData(shape : IntArray, val ba : ByteArray, val isBE: Boolean
     }
 
     private val heap = mutableMapOf<Int, Any>()
-    // private var heapIndex = 0
     internal fun putOnHeap(offset: Int, value: Any) {
         heap[offset] = value
-        // ba.putInt(offset, heapIndex) // TODO clobber the ByteArray ?? Or just use the byte pos, which is unique
-        //val result = heapIndex
-        // heapIndex++
-        // return result
     }
 
     internal fun getFromHeap(offset: Int): Any? {

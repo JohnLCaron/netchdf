@@ -27,14 +27,10 @@ internal fun <T> H5builder.readChunkedData(v2: Variable<T>, wantSection: Section
         throw RuntimeException("Illegal nbytes to read = $sizeBytes")
     }
     val ba = ByteArray(sizeBytes.toInt())
-
-    // just reading into memory the entire index for now
-    // val index =  BTree2j(h5, v2.name, vinfo.dataPos, vinfo.storageDims)
-
     val filters = FilterPipeline(v2.name, vinfo.mfp, vinfo.h5type.isBE)
     val state = OpenFileState(0L, vinfo.h5type.isBE)
 
-    // just run through all the chunks, we wont read any that we dont need
+    // run through all the chunks, we wont read any that we dont need
     for (dataChunk: DataChunk in index) {
         val dataSection = IndexSpace(v2.rank, dataChunk.offsets.toLongArray(), vinfo.storageDims)
         val chunker = Chunker(dataSection, wantSpace) // each DataChunkEntry has its own Chunker iteration
@@ -61,60 +57,6 @@ internal fun <T> H5builder.readChunkedData(v2: Variable<T>, wantSection: Section
         this.processDataIntoArray(ba, vinfo.h5type.isBE, datatype, shape, h5type, elemSize) as ArrayTyped<T>
     }
 }
-
-/* DataLayoutBTreeVer1
-internal fun <T> H5builder.readBtree1data(v2: Variable<T>, wantSection: Section): ArrayTyped<T> {
-    val vinfo = v2.spObject as DataContainerVariable
-    val h5type = vinfo.h5type
-
-    val elemSize = vinfo.storageDims[vinfo.storageDims.size - 1].toInt() // last one is always the elements size
-    val datatype = vinfo.h5type.datatype()
-
-    val wantSpace = IndexSpace(wantSection)
-    val sizeBytes = wantSpace.totalElements * elemSize
-    if (sizeBytes <= 0 || sizeBytes >= Int.MAX_VALUE) {
-        throw RuntimeException("Illegal nbytes to read = $sizeBytes")
-    }
-    val ba = ByteArray(sizeBytes.toInt())
-
-    val btree1 = if (vinfo.mdl is DataLayoutBTreeVer1) {
-        val rafext: OpenFileExtended = this.openNewFileExtended()
-        BTree1data(rafext, vinfo.dataPos, v2.shape, vinfo.storageDims)
-    } else {
-        throw RuntimeException("Unsupported mdl ${vinfo.mdl}")
-    }
-
-    //val tiledData = H5TiledData1(btree1, v2.shape, vinfo.storageDims)
-    val filters = FilterPipeline(v2.name, vinfo.mfp, vinfo.h5type.isBE)
-    //if (debugChunking) println(" readChunkedData tiles=${tiledData.tiling}")
-
-    var transferChunks = 0
-    val state = OpenFileState(0L, vinfo.h5type.isBE)
-    btree1.asSequence().forEach { dataChunk ->
-        val dataSection = IndexSpace(v2.rank, dataChunk.offsets.toLongArray(), vinfo.storageDims)
-        val chunker = Chunker(dataSection, wantSpace) // each DataChunkEntry has its own Chunker iteration
-        if (dataChunk.isMissing()) {
-            if (debugChunking) println("   missing ${dataChunk.show()}")
-            chunker.transferMissing(vinfo.fillValue, elemSize, ba)
-        } else {
-            if (debugChunking) println("   chunk=${dataChunk.show()}")
-            state.pos = dataChunk.address
-            val chunkData = this.raf.readByteArray(state, dataChunk.size)
-            val filteredData = if (dataChunk.filterMask == null) chunkData
-            else filters.apply(chunkData, dataChunk.filterMask)
-            chunker.transferBA(filteredData, 0, elemSize, ba, 0)
-            transferChunks += chunker.transferChunks
-        }
-    }
-
-    val shape = wantSpace.shape.toIntArray()
-
-    return if (h5type.datatype5 == Datatype5.Vlen) {
-        this.processVlenIntoArray(h5type, shape, ba, wantSpace.totalElements.toInt(), elemSize)
-    } else {
-        this.processDataIntoArray(ba, vinfo.h5type.isBE, datatype, shape, h5type, elemSize) as ArrayTyped<T>
-    }
-} */
 
 internal fun <T> readChunkedDataWithIterator(hdf5: Hdf5File, v2: Variable<T>, wantSection: SectionPartial?): ArrayTyped<T> {
     val vinfo = v2.spObject as DataContainerVariable
@@ -149,7 +91,6 @@ internal fun <T> readChunkedDataWithIterator(hdf5: Hdf5File, v2: Variable<T>, wa
         val dataSection = IndexSpace(dataChunk.chunkSection)
         val chunker = Chunker(dataSection, wantSpace) // each DataChunkEntry has its own Chunker iteration
         chunker.forEach {
-            // println(it)
             dataChunk.array.transfer(values, it)
         }
     }

@@ -129,9 +129,6 @@ fun unsignedByteToShort(b: Byte): Short {
 */
 
 ////////////////////////////////////////////////////////////////////////
-// TODO
-// doubleIsNearlyEqual() doublesAreNearlyEqual
-
 const val defaultMaxRelativeDiffFloat = 1.0e-5f
 
 /** The default maximum relative difference for floats, when comparing as doubles.  */

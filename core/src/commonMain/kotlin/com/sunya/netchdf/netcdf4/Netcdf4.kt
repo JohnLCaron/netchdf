@@ -48,7 +48,7 @@ object Netcdf4 {
 
     val NETCDF4_SPECIAL_ATTS = listOf(NCPROPERTIES, NETCDF4_COORDINATES, NETCDF4_STRICT, NETCDF4_DIMID)
 
-    // appended to variable when it conflicts with dimension scale
+    // prepended to variable when it conflicts with dimension scale
     const val NETCDF4_NON_COORD = "_nc4_non_coord_"
 
     const val NETCDF4_NOT_VARIABLE = "This is a netCDF dimension but not a netCDF variable"
