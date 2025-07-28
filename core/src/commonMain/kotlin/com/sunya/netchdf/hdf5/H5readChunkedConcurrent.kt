@@ -27,7 +27,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 
 @ExperimentalCoroutinesApi
-class H5chunkConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: SectionPartial?, ) {
+class H5readChunkedConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSection: SectionPartial?, ) {
     val rafext: OpenFileExtended = h5.makeFileExtended()
 
     val varShape = v2.shape

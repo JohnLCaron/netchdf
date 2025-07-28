@@ -66,7 +66,7 @@ class H5readConcurrentTest {
             for (nthreads in listOf(1, 2, 4, 8, 10, 16, 20, 24, 32, 40, 48)) {
                 myfile.useNThreads = nthreads
                 val time = measureNanoTime {
-                    myfile.readArrayData(myvar)
+                    myfile.readArrayData(myvar) // , null, recurse = true, countChunks = (nthreads == 1))
                 }
                 println("$nthreads, ${time * nano}")
                 val map1 = timing.getOrPut(nthreads) { mutableMapOf() }

@@ -51,7 +51,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         return readArrayData(v2, wantSection, recurse = false)
     }
 
-    fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?, recurse: Boolean): ArrayTyped<T> {
+    fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial?, recurse: Boolean, countChunks: Boolean = false): ArrayTyped<T> {
         if (v2.nelems == 0L) {
             return ArrayEmpty(v2.shape.toIntArray(), v2.datatype)
         }
@@ -87,6 +87,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
                     v2.datatype == Datatype.STRING || v2.datatype == Datatype.VLEN)) {
                     val btree1 =
                         BTree1data(header.makeFileExtended(),  vinfo.dataPos, v2.shape, vinfo.storageDims)
+                    if (countChunks) println(" nchunks = ${btree1.countChunks()}")
                     header.readChunkedData(v2, section, btree1.chunkIterator())
                     // header.readBtree1data(v2, section)
                 } else {
@@ -160,7 +161,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
     }
 
     class H5chunkIterator2<T>(hdfFile: Hdf5File, val v2: Variable<T>, val wantSection: SectionPartial?): AbstractIterator<ArraySection<T>>() {
-        val reader = H5chunkConcurrent(hdfFile.header, v2, wantSection)
+        val reader = H5readChunkedConcurrent(hdfFile.header, v2, wantSection)
         val nthreads = hdfFile.useNThreads()
         val deque = Deque<ArraySection<T>>(10)
 
@@ -184,7 +185,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
 
     override fun <T> readChunksConcurrent(v2: Variable<T>, lamda : (ArraySection<T>) -> Unit, done : () -> Unit,
                                           wantSection: SectionPartial?, nthreads: Int?) {
-        val reader = H5chunkConcurrent(header, v2, wantSection)
+        val reader = H5readChunkedConcurrent(header, v2, wantSection)
         val availableProcessors = this.useNThreads()
         // println("availableProcessors = $availableProcessors")
         reader.readChunks(nthreads ?: availableProcessors, lamda, done = { done() })

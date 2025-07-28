@@ -186,7 +186,6 @@ internal class FractalHeap(private val h5: H5builder, forWho: String, address: L
                             return record1.hugeObjectAddress
                         }
 
-                        // 3, 4 -> return offset.toLong() // TODO only a guess
                         else -> throw RuntimeException("Unknown DHeapId subtype =$subtype")
                     }
                 }

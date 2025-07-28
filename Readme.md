@@ -1,5 +1,5 @@
 # netchdf
-_last updated: 7/27/2025_
+_last updated: 7/28/2025_
 
 This is a rewrite in Kotlin of parts of the devcdm and netcdf-java libraries. 
 
@@ -33,6 +33,8 @@ Please contact me if you'd like to help out. Especially needed are test datasets
       * [Compare with HDF5 data model](#compare-with-hdf5-data-model)
       * [Compare with HDF4 data model](#compare-with-hdf4-data-model)
       * [Compare with HDF-EOS data model](#compare-with-hdf-eos-data-model)
+  * [Implementation Notes](#implementation-notes)
+    * [Netcdf4 vs HDF5](#netcdf4-vs-hdf5)
   * [Elevator blurb](#elevator-blurb)
 <!-- TOC -->
 
@@ -304,6 +306,24 @@ Please carefully check results if you have this kind of data, and send us sample
 #### Compare with HDF-EOS data model
 * The _StructMetadata_ ODL is gathered and applied to the file header metadata as well as possible. 
   Contact us with example files if you see something we are missing.
+
+## Implementation Notes
+
+### Netcdf4 vs HDF5
+
+All Netcdf4 files are HDF5, but not all HDF5 files are Netcdf4. We'd like to be able to detect when a file was written
+using the Netcdf-4 library, but its not possible to always tell for certain. If any of the following are true, we set
+isNetcdf4 = true.
+
+    1.  If a group or variable has an attribute with name "_NCProperties", "_Netcdf4Coordinates", "_Netcdf4Dimid" or "_nc3_strict".
+    2.  If a variable name starts with "_nc4_non_coord_".
+    3.  If a variable has an attrinute named "DIMENSION_LIST with type vlen of reference.
+    4.  If a dimenson name starts with "This is a netCDF dimension but not a netCDF variable"
+
+Other than trying to identify which library wrote the file, Netchdf does not do any special processing for Netcdf4 files,
+except:
+
+    1. When testing, use the Netcdf4 C library when comparing data and metadata.
 
 ## Elevator blurb
 

@@ -264,7 +264,7 @@ internal class N3header(rafOrg: OpenFileIF, val root: Group.Builder) {
         nelems
       }
       Datatype.CHAR -> {
-        // a CHAR is made into a String with UTF8 assumed. TODO make this settable ??
+        // a CHAR is made into a String with UTF8 assumed.
         attBuilder.setValue(raf.readString(filePos, nelems))
         nelems
       }

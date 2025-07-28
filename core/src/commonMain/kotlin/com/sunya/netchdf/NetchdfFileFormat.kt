@@ -107,7 +107,7 @@ enum class NetchdfFileFormat(private val version: Int, private val formatName: S
     NC_FORMAT_64BIT_OFFSET(2, "netcdf-3 64bit-offset"),
     NC_FORMAT_NETCDF4(3, "NetCDF-4"),  // This is really just HDF-5, dont know yet if its written by netcdf4.
     NC_FORMAT_NETCDF4_CLASSIC(4, "netcdf-4 classic"),  // psuedo format I think
-    NC_FORMAT_64BIT_DATA(5, "netcdf-5"), // TODO support this; need test files
+    NC_FORMAT_64BIT_DATA(5, "netcdf-5"), // we have one test file: ../core/src/commonTest/data/jays_DOMAIN000.nc
 
     HDF5(5, "hdf5"), // not written by netcdf C library
     HDF4(6, "hdf4"); // not written by netcdf C library

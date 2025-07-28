@@ -17,7 +17,7 @@ interface Netchdf : AutoCloseable {
     // TODO I think the output type is not always the input type
     fun <T> readArrayData(v2: Variable<T>, wantSection: SectionPartial? = null) : ArrayTyped<T>
 
-    // iterate over all the chunks in section, order is arbitrary. TODO where is intersection with wantSection done ??
+    // iterate over all the chunks in section, order is arbitrary.
     fun <T> chunkIterator(v2: Variable<T>, wantSection: SectionPartial? = null, maxElements : Int? = null) : Iterator<ArraySection<T>>
 
     // iterate over all the chunks in section, order is arbitrary, callbacks are in multiple threads.
@@ -31,9 +31,4 @@ interface Netchdf : AutoCloseable {
 }
 
 // the section describes the array chunk reletive to the variable's shape.
-data class ArraySection<T>(val array : ArrayTyped<T>, val chunkSection : Section) {
-    fun intersect(wantSection: SectionPartial) : ArrayTyped<T> {
-        // TODO ??
-        return array
-    }
-}
+data class ArraySection<T>(val array : ArrayTyped<T>, val chunkSection : Section)
