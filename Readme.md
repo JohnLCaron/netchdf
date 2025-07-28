@@ -59,10 +59,10 @@ Also see:
 We use the latest LTS (long term support) Java version, and will not be explicitly supporting older versions.
 Currently that is Java 21.
 
-We also use the latest stable version of Kotlin that is compatible with the Java version. Currently that is Kotlin 2.1.
+We also use the latest stable version of Kotlin that is compatible with the Java version. Currently that is Kotlin 2.1.21.
 
 Gradle is our build system. We will use the latest stable version of Gradle compatible with our Java and Kotlin versions.
-Currently that is Gradle 8.14.
+Currently that is Gradle 8.14.3.
 
 For now, you must download and build the library yourself. Eventually we will publish it to Maven Central.
 The IntelliJ IDE is highly recommended for all JVM development.

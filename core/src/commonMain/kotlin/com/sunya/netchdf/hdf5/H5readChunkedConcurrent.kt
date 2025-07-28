@@ -47,7 +47,7 @@ class H5readChunkedConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSec
         } else if (vinfo.mdl is DataLayoutBtreeVer2) {
             chunks = BTree2data(rafext, v2.name, vinfo.dataPos, v2.shape, vinfo.storageDims)
         } else {
-            throw RuntimeException("H5chunkConcurrent cant read ${vinfo.mdl.javaClass.simpleName}")
+            throw RuntimeException("H5chunkConcurrent cant read ${vinfo.mdl::class}")
         }
     }
 

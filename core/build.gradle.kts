@@ -9,7 +9,6 @@ version = libs.versions.netchdf.get()
 kotlin {
     jvm()
 
-    /*
     val hostOs = System.getProperty("os.name")
     val arch = System.getProperty("os.arch")
     when {
@@ -28,8 +27,6 @@ kotlin {
 
         else -> throw GradleException("Host OS is not supported.")
     }
-
-     */
 
     sourceSets {
         val commonMain by getting {

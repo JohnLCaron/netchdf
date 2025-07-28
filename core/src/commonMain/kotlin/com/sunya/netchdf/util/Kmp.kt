@@ -1,6 +1,5 @@
 package com.sunya.netchdf.util
 
-
 expect fun useDefaultNThreads(): Int
 
 // add to end, take from head

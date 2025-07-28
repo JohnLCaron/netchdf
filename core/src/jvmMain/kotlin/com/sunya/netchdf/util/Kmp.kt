@@ -16,10 +16,6 @@ actual class Deque<T> actual constructor(initialCapacity: Int) {
         delegate.add(item)
     }
 
-    //actual fun next(): T? {
-    //    return delegate.poll() // can i block until available ??
-    //}
-
     actual fun next(): T? {
         var countWaits = 0
         while (true) {
@@ -39,6 +35,7 @@ actual class Deque<T> actual constructor(initialCapacity: Int) {
                 countWaits++
             }
         }
+        return null
 
     }
 

@@ -34,12 +34,12 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
     override fun type() = header.formatType()
     override val size : Long get() = raf.size()
 
-    fun layoutName(v: Variable<*>): String {
+    fun layoutName(v: Variable<*>): String? {
         if (v.spObject is DataContainerAttribute) {
             return("DataContainerAttribute")
         }
         val vinfo = (v.spObject as DataContainerVariable)
-        return vinfo.mdl.javaClass.simpleName
+        return vinfo.mdl::class.simpleName
     }
 
     var useNThreads : Int? = null
