@@ -323,7 +323,7 @@ isNetcdf4 = true.
 Other than trying to identify which library wrote the file, Netchdf does not do any special processing for Netcdf4 files,
 except:
 
-    1. When testing, use the Netcdf4 C library when comparing data and metadata.
+1. When testing, use the Netcdf4 C library when comparing data and metadata.
 
 ## Elevator blurb
 
