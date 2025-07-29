@@ -39,7 +39,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
             return("DataContainerAttribute")
         }
         val vinfo = (v.spObject as DataContainerVariable)
-        return vinfo.mdl.javaClass.simpleName
+        return vinfo.mdl::class.simpleName ?: "none"
     }
 
     var useNThreads : Int? = null
@@ -166,10 +166,11 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
         val deque = Deque<ArraySection<T>>(10)
 
         init {
+            // we start up the concurrent read, but its blocking here
             reader.readChunks(
                 nthreads,
                 lamda = { deque.add(it) },
-                done = { deque.done() }
+                done = { deque.complete() }
             )
         }
 
@@ -187,8 +188,7 @@ class Hdf5File(val filename : String, strict : Boolean = false) : Netchdf {
                                           wantSection: SectionPartial?, nthreads: Int?) {
         val reader = H5readChunkedConcurrent(header, v2, wantSection)
         val availableProcessors = this.useNThreads()
-        // println("availableProcessors = $availableProcessors")
-        reader.readChunks(nthreads ?: availableProcessors, lamda, done = { done() })
+        reader.readChunksBlocking(nthreads ?: availableProcessors, lamda, done)
     }
 
 }

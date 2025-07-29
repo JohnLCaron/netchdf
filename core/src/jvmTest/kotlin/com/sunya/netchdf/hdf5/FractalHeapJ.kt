@@ -312,5 +312,5 @@ fun bytesNeededToHoldNumber(number: Long): Int {
     if (number == 0L) {
         return 1
     }
-    return ceil(java.math.BigInteger.valueOf(number).bitLength() / 8.0).toInt()
+    return ceil(BigInteger.valueOf(number).bitLength() / 8.0).toInt()
 }

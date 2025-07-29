@@ -3,18 +3,20 @@
 package com.sunya.netchdfc
 
 import com.sunya.cdm.api.*
+import com.sunya.cdm.array.ArrayFloat
 import com.sunya.cdm.array.ArrayInt
 import com.sunya.netchdf.openNetchdfFile
 
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.FloatVar
 import kotlinx.cinterop.IntVar
 import kotlinx.cinterop.LongVar
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.pin
 
 fun version() : String {
-    return "netchdf version 0.4.0"
+    return "netchdf version 0.7.0"
 }
 
 fun openNetchdfFile(filename : String) : Netchdf? {
@@ -30,15 +32,30 @@ class VariableC(val varName: String, varShape: LongArray, val rank: Int) {
     val pinnedShape: CPointer<LongVar> = varShape.pin().addressOf(0)
 }
 
-fun Netchdf.readVariable(variableFullName : String) : VariableData {
+fun Netchdf.readVariableInt(variableFullName : String) : VariableDataInt {
     val vc = this.findVariable(variableFullName)!!
     val arrayInt = this.readArrayData(vc) as ArrayInt
-    return VariableData(vc.name, vc.shape.toIntArray(), arrayInt.nelems, arrayInt.values)
+    return VariableDataInt(vc.name, vc.shape.toIntArray(), arrayInt.nelems, arrayInt.values)
 }
 
-class VariableData(val varName: String, dataShape: IntArray, val nelems: Int, data: IntArray) {
+fun Netchdf.readVariableFloat(variableFullName : String) : VariableDataFloat {
+    val vc = this.findVariable(variableFullName)!!
+    val arrayFloat = this.readArrayData(vc) as ArrayFloat
+    return VariableDataFloat(vc.name, vc.shape.toIntArray(), arrayFloat.nelems, arrayFloat.values)
+}
+
+class VariableDataInt(val varName: String, dataShape: IntArray, val nelems: Int, data: IntArray) {
     val pinnedShape: CPointer<IntVar> = dataShape.pin().addressOf(0)
     val pinnedData: CPointer<IntVar> = data.pin().addressOf(0)
+}
+
+class VariableDataFloat(val varName: String, dataShape: IntArray, val nelems: Int, data: FloatArray) {
+    val pinnedShape: CPointer<IntVar> = dataShape.pin().addressOf(0)
+    val pinnedData: CPointer<FloatVar> = data.pin().addressOf(0)
+
+    init {
+        println("VariableDataFloat $varName nelems $nelems data size = ${data.size}")
+    }
 }
 
 

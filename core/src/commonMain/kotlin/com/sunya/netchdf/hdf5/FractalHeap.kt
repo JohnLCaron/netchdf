@@ -7,6 +7,8 @@ import com.sunya.cdm.iosp.OpenFileIF
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.util.*
 
+val UNDEFINED_ADDRESS = -1L
+
 /** Level 1G - Fractal Heap  */
 // TODO rewrite
 internal class FractalHeap(private val h5: H5builder, forWho: String, address: Long) {

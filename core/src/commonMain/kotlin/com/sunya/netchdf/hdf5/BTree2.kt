@@ -210,7 +210,9 @@ fun getSizeOfNumberOfRecords(
 
 // jhdf
 internal fun bytesNeededToHoldNumber(number: Int): Int {
-    return (Integer.numberOfTrailingZeros(Integer.highestOneBit(number)) + 8) / 8
+    //     return (Integer.numberOfTrailingZeros(Integer.highestOneBit(number)) + 8) / 8
+    val p1 = number.takeHighestOneBit()
+    return (p1.countTrailingZeroBits() + 8) / 8
 }
 
 /* private fun getSizeOfTotalNumberOfChildRecords(nodeSize: Int, depth: Int, recordSize: Int): Int {

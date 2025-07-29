@@ -7,7 +7,7 @@ import com.sunya.netchdf.testutil.testData
 
 class JhdfReadTest {
     companion object {
-        @JvmStatic
+        // @JvmStatic
         fun files(): Iterator<String> {
             return JhdfFiles.files()
         }

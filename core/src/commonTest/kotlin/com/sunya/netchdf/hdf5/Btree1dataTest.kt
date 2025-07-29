@@ -5,9 +5,7 @@ package com.sunya.netchdf.hdf5
 import com.sunya.cdm.api.ArraySection
 import com.sunya.cdm.api.toLongArray
 import com.sunya.cdm.util.InternalLibraryApi
-import com.sunya.netchdf.testutil.nano
 import com.sunya.netchdf.testutil.testData
-import kotlin.system.measureNanoTime
 import kotlin.test.Test
 
 class Btree1dataTest {
@@ -58,15 +56,15 @@ class Btree1dataTest {
             println("nthreads,   time in secs")
 
             for (nthreads in listOf(1, 2, 4, 8, 10, 16, 20, 24, 32, 40, 48)) {
-                val time = measureNanoTime {
+               // val time = measureNanoTime {
                     //     fun readChunks(nthreads: Int, lamda: (ArraySection<*>) -> Unit, done: () -> Unit) {
                     val reader = H5readChunkedConcurrent(myfile.header, myvar, null)
                     reader.readChunks(nthreads, lamda = { asect: ArraySection<*> ->
                         // println(" section = ${asect.chunkSection}")
                     }, { }, )
                 }
-                println("$nthreads, ${time * nano}")
-            }
+                //println("$nthreads, ${time * nano}")
+            //}
         }
     }
 

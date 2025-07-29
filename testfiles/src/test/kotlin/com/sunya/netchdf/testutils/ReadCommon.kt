@@ -20,7 +20,8 @@ fun showNetchdfHeader(filename: String) {
     }
 }
 
-fun readNetchdfData(filename: String, varname: String? = null, section: SectionPartial? = null, showCdl : Boolean = false, showData : Boolean = false) {
+fun readNetchdfData(filename: String, varname: String? = null, section: SectionPartial? = null,
+                    showCdl : Boolean = false, showData : Boolean = false, sumData : Boolean = false) {
     // println("=============================================================")
     openNetchdfFile(filename).use { myfile ->
         if (myfile == null) {
@@ -28,14 +29,15 @@ fun readNetchdfData(filename: String, varname: String? = null, section: SectionP
             return
         }
         println("--- ${myfile.type()} $filename ")
-        readMyData(myfile,varname, section, showCdl, showData)
+        readMyData(myfile,varname, section, showCdl, showData, sumData)
     }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // just read data from myfile
 
-fun readMyData(myfile: Netchdf, varname: String? = null, section: SectionPartial? = null, showCdl : Boolean = false, showData : Boolean = false) {
+fun readMyData(myfile: Netchdf, varname: String? = null, section: SectionPartial? = null,
+               showCdl : Boolean = false, showData : Boolean = false, sumData : Boolean = false) {
 
     if (showCdl) {
         println(myfile.cdl())
@@ -47,25 +49,26 @@ fun readMyData(myfile: Netchdf, varname: String? = null, section: SectionPartial
             println("cant find $varname")
             return
         }
-        readOneVar(myvar, myfile, section, showData)
+        readOneVar(myvar, myfile, section, showData, sumData)
     } else {
         myfile.rootGroup().allVariables().forEach { it ->
-            readOneVar(it, myfile, null, showData)
+            readOneVar(it, myfile, null, showData, sumData)
         }
     }
 }
 
 const val maxBytes = 10_000_000
 
-fun readOneVar(myvar: Variable<*>, myfile: Netchdf, section: SectionPartial?, showData : Boolean = false) {
+fun readOneVar(myvar: Variable<*>, myfile: Netchdf, section: SectionPartial?,
+               showData : Boolean = false, sumData : Boolean = false) {
     println("   read ${myvar.name}")
 
     val sectionF = SectionPartial.fill(section, myvar.shape)
     val nbytes = sectionF.totalElements * myvar.datatype.size
     val myvarshape = myvar.shape.toIntArray()
 
-    if (nbytes > maxBytes) {
-        if (showData) println(" * ${myvar.fullname()} read too big: ${nbytes} > $maxBytes")
+    if (!sumData && nbytes > maxBytes) {
+        println(" * ${myvar.fullname()} read too big: ${nbytes} > $maxBytes")
     } else {
         val mydata = myfile.readArrayData(myvar, section)
         if (showData) println(" ${myvar.datatype} ${myvar.fullname()}${myvar.shape.contentToString()} = " +
@@ -76,6 +79,7 @@ fun readOneVar(myvar: Variable<*>, myfile: Netchdf, section: SectionPartial?, sh
             assertTrue(myvarshape.equivalent(mydata.shape), "variable ${myvar.name}")
         }
         if (showData) println(mydata)
+        if (sumData) println("sum = ${sumValues(mydata)}")
     }
 
     if (myvar.nelems > 8 && myvar.datatype != Datatype.CHAR) {
@@ -123,4 +127,34 @@ fun readMiddleSection(myfile: Netchdf, myvar: Variable<*>, shape: LongArray, sho
         assertTrue(middleShape.equivalent(mydata.shape), "variable ${myvar.name}")
     }
     if (showData) println(mydata)
+}
+
+fun sumValues(array : ArrayTyped<*>): Double {
+    var result = 0.0
+
+    if (array.datatype.isNumber) {
+        for (value in array) {
+            val number = (value as Number)
+            val numberd: Double = number.toDouble()
+            if (numberd.isFinite()) {
+                result += numberd
+            }
+        }
+    } else if (array.datatype.isIntegral) {
+        for (value in array) {
+            val useValue = when (value) {
+                is UByte -> value.toByte()
+                is UShort -> value.toShort()
+                is UInt -> value.toInt()
+                is ULong -> value.toLong()
+                else -> value
+            }
+            val number = (useValue as Number)
+            val numberd: Double = number.toDouble()
+            if (numberd.isFinite()) {
+                result += numberd
+            }
+        }
+    }
+    return result
 }
