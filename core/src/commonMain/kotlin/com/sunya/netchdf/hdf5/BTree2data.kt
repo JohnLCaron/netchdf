@@ -63,6 +63,8 @@ internal class BTree2data(
         }
     }
 
+    fun countChunks() = asSequence().count()
+
     fun chunkIterator(): Iterator<DataChunk> = asSequence().iterator()
 
     internal fun findDataChunk(order: Int): DataChunk? {

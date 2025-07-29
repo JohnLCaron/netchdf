@@ -79,10 +79,6 @@ fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>, showStats: Bo
                     val sum = sumValues(it.array)
                     suma.getAndAdd(sum)
                     counta.fetchAndAdd(1)
-                    // println(" chunk ${it.section} sum $sum")
-                    /* if (it.section.toString().contains("[0:0][0:17][0:97][148:295]")) {
-                        println(it)
-                    } */
                 }, done = { })
             }
             val countConcurrentRead = counta.load()
@@ -98,36 +94,6 @@ fun compareChunkReadingForVar(myfile: Netchdf, myvar: Variable<*>, showStats: Bo
     if (showStats) Stats.show()
 
     return countChunkIterator
-}
-
-private fun sumValues(array : ArrayTyped<*>): Double {
-    var result = 0.0
-
-    if (array.datatype.isNumber) {
-        for (value in array) {
-            val number = (value as Number)
-            val numberd: Double = number.toDouble()
-            if (numberd.isFinite()) {
-                result += numberd
-            }
-        }
-    } else if (array.datatype.isIntegral) {
-        for (value in array) {
-            val useValue = when (value) {
-                is UByte -> value.toByte()
-                is UShort -> value.toShort()
-                is UInt -> value.toInt()
-                is ULong -> value.toLong()
-                else -> value
-            }
-            val number = (useValue as Number)
-            val numberd: Double = number.toDouble()
-            if (numberd.isFinite()) {
-                result += numberd
-            }
-        }
-    }
-    return result
 }
 
 //////////////////////////////////////////////////////////////////////////////////////

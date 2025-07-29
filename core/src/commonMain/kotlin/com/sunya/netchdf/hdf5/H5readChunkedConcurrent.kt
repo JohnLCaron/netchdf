@@ -18,6 +18,7 @@ import com.sunya.cdm.util.InternalLibraryApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.produce
@@ -44,14 +45,38 @@ class H5readChunkedConcurrent<T>(val h5: H5builder, val v2: Variable<T>, wantSec
         if (vinfo.mdl is DataLayoutBTreeVer1) {
             val mdl = vinfo.mdl
             chunks = BTree1data(rafext, mdl.btreeAddress, varShape, mdl.chunkDims.toLongArray())
+            println(" BTree1data nchunks = ${chunks.countChunks()}")
         } else if (vinfo.mdl is DataLayoutBtreeVer2) {
             chunks = BTree2data(rafext, v2.name, vinfo.dataPos, v2.shape, vinfo.storageDims)
+            println(" BTree2data nchunks = ${chunks.countChunks()}")
         } else {
             throw RuntimeException("H5chunkConcurrent cant read ${vinfo.mdl::class}")
         }
     }
 
+    // Start the backgroup threads then return immediately
+
     fun readChunks(nthreads: Int, lamda: (ArraySection<T>) -> Unit, done: () -> Unit) {
+        println(" readChunks with  nthreads = $nthreads")
+
+        GlobalScope.launch(Dispatchers.Default) {
+            val jobs = mutableListOf<Job>()
+            val workers = mutableListOf<Worker>()
+            val chunkProducer = produceChunks(chunks.asSequence())
+            repeat(nthreads) {
+                val worker = Worker()
+                jobs.add(launchJob(worker, chunkProducer, lamda))
+                workers.add(worker)
+            }
+
+            // wait for all jobs to be done, then close everything
+            joinAll(*jobs.toTypedArray())
+            workers.forEach { it.rafext.close() }
+            done()
+        }
+    }
+
+    fun readChunksBlocking(nthreads: Int, lamda: (ArraySection<T>) -> Unit, done: () -> Unit) {
 
         runBlocking {
             val jobs = mutableListOf<Job>()

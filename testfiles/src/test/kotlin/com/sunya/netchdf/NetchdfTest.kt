@@ -81,18 +81,28 @@ class NetchdfTest {
         readNetchdfData(testData + "devcdm/netcdf3/simple_xy.nc", showData = true)
     }
 
-    // this is working
     @Test
     fun readBtreeVer1() {
         readNetchdfData(testData + "/cdmUnitTest/formats/hdf5/OMI-Aura_L2-OMTO3_2009m0829t1219-o27250_v003-2009m0829t175727-2.he5",
             "/HDFEOS/SWATHS/OMI_Column_Amount_O3/Data_Fields/fc", showCdl = false, showData = false)
     }
 
-    // this is working
     @Test
     fun readBtreeVer1complex() {
         readNetchdfData(testData + "/cdmUnitTest/formats/hdf5/OMI-Aura_L2-OMTO3_2009m0829t1219-o27250_v003-2009m0829t175727-2.he5",
             "/HDFEOS/SWATHS/OMI_Column_Amount_O3/Data_Fields/fc", showCdl = false, showData = true)
+    }
+
+    @Test
+    fun readNativeProblem() {
+        readNetchdfData("/home/all/testdata/cdmUnitTest/formats/netcdf4/espresso_his_20130913_0000_0007.nc",
+            "vbar", showCdl = false, sumData = true)
+    }
+
+    @Test
+    fun readNativeProblem2() {
+        readNetchdfData("/home/stormy/dev/github/netcdf/netchdf/core/src/commonTest/data/netcdf4/tiling.nc4",
+            "Turbulence_SIGMET_AIRMET", showCdl = false, sumData = true)
     }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////

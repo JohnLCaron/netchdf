@@ -16,10 +16,10 @@ class CountVersions {
             return sequenceOf(
                 N3Files.Companion.files().asSequence(),
                 N4Files.Companion.files().asSequence(),
-                H5Files.Companion.files().asSequence(),
+                /* H5Files.Companion.files().asSequence(),
                 H4Files.Companion.files().asSequence(),
                 NetchdfExtraFiles.Companion.files(false).asSequence(),
-                JhdfFiles.Companion.files().asSequence(),
+                JhdfFiles.Companion.files().asSequence(), */
             )
                 .flatten()
                 .iterator()
@@ -122,7 +122,7 @@ class CountVersions {
 
                         ncfile.rootGroup().allVariables().forEach { v ->
                             val layout = hdf5File?.layoutName(v) ?: ""
-                            varSizes["$filename#${v.name}#$layout#${ncfile.size/(1000*1000)}"] = v.nelems
+                            varSizes["$filename#${v.name}#${v.datatype}#$layout#${ncfile.size/(1000*1000)}"] = v.nelems
                         }
                     }
                 }

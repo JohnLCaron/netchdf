@@ -25,7 +25,7 @@ For example, choose one:
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/dev/core/build/bin/linuxX64/releaseShared
 
-sudo cp core/build/bin/linuxX64/releaseShared/libnetchdf.so /usr/local/lib
+sudo cp core/build/bin/linuxX64/debugShared/libnetchdf.so /usr/local/lib
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.
 ````
@@ -33,7 +33,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.
 ### create test c program
 
 ````
-cd core/ctest
+cd core/src/nativeTest/c
 gcc main.c \
   -I/home/stormy/dev/github/netcdf/netchdf/core/build/bin/linuxX64/debugShared \
   -L/home/stormy/dev/github/netcdf/netchdf/core/build/bin/linuxX64/debugShared \
@@ -51,7 +51,7 @@ gcc main.c \
 ~:$ echo $LD_LIBRARY_PATH
 /usr/local/lib:/home/stormy/install/HDF_Group/HDF5/1.14.6/lib:.
 
-cd core/ctest
+cd core/src/nativeTest/c
 cp /home/stormy/dev/github/netcdf/netchdf/core/build/bin/linuxX64/debugShared/libnetchdf.so .
 
 ./a.out \
@@ -60,7 +60,6 @@ cp /home/stormy/dev/github/netcdf/netchdf/core/build/bin/linuxX64/debugShared/li
 
 output is currently:
 
-netchdf version 0.4.0
 file simple_xy.nc
 netcdf3 simple_xy.nc {
   dimensions:
@@ -69,21 +68,29 @@ netcdf3 simple_xy.nc {
   variables:
     int data(x, y) ;
 }
-nelems=72
-first shape=-111406072
-second shape=32190
- 0 == -114171240
- 1 == 32190
- 2 == 1
- 3 == 0
- 4 == -1032136048
- 5 == 22331
- 6 == 124209
- 7 == 0
- 8 == 0
- 9 == 0
+get_varName=data
+rank=2
+ 0 == 6
+ 1 == 12
 
-````
+get_varName=data
+nelems=72
+ 0 == 6
+ 1 == 12
+
+ 0 == 0
+ 1 == 1
+ 2 == 2
+ 3 == 3
+ 4 == 4
+ 5 == 5
+ 6 == 6
+ 7 == 7
+  ...
+
+Hints:
+* if you keep core dumping before anything else, make sure your have copied the latest and correct library to /usr/local/lib
+
 ### Example2
 
 ````

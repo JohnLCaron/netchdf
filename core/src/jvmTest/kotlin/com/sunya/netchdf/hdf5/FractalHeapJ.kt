@@ -1,11 +1,9 @@
 @file:OptIn(InternalLibraryApi::class)
 
-package com.sunya.netchdf5.hdf5
+package com.sunya.netchdf.hdf5
 
 import com.sunya.cdm.iosp.OpenFileState
 import com.sunya.cdm.util.InternalLibraryApi
-import com.sunya.netchdf.hdf5.H5builder
-import com.sunya.netchdf.hdf5.isBitSet
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.math.BigInteger
 import kotlin.math.ceil

@@ -265,7 +265,7 @@ For example, a Variable of datatype Float will return an ArrayFloat, which is Ar
     return data as ArrayUByte. 
   * Netcdf-4 encodes CHAR values as HDF5 string type with elemSize = 1, so we use that convention to detect 
     legacy CHAR variables in HDF5 format. (NC_CHAR should not be used in new Netcdf-4 files, use NC_UBYTE or NC_STRING.) 
-    Variables of type CHAR return data as STRING, since users can use UBYTE if thats what they intend.
+    Variables of type CHAR return data as STRING, since users can use UBYTE if that's what they intend.
   * Netcdf-4/HDF5 String variables may be fixed or variable length. For fixed Strings, we set the size of Datatype.STRING to 
     the fixed size. For both fixed and variable length Strings, the string will be truncated at the first zero byte, if any.
   * HDF4 does not have a STRING type, but does have signed and unsigned CHAR, and signed and unsigned BYTE. 
@@ -318,7 +318,7 @@ isNetcdf4 = true.
     1.  If a group or variable has an attribute with name "_NCProperties", "_Netcdf4Coordinates", "_Netcdf4Dimid" or "_nc3_strict".
     2.  If a variable name starts with "_nc4_non_coord_".
     3.  If a variable has an attrinute named "DIMENSION_LIST with type vlen of reference.
-    4.  If a dimenson name starts with "This is a netCDF dimension but not a netCDF variable"
+    4.  If a dimension name starts with "This is a netCDF dimension but not a netCDF variable"
 
 Other than trying to identify which library wrote the file, Netchdf does not do any special processing for Netcdf4 files,
 except:

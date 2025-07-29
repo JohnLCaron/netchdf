@@ -6,5 +6,5 @@ expect fun useDefaultNThreads(): Int
 expect class Deque<T>(initialCapacity: Int) {
     fun add(item: T)
     fun next(): T?
-    fun done()
+    fun complete()
 }

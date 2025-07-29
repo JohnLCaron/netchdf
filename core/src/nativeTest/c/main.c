@@ -1,5 +1,20 @@
 #include "libnetchdf_api.h"
 #include "stdio.h"
+#include "math.h"
+#include <sys/time.h>
+
+void showDuration(char *what, struct timespec *start_time, struct timespec *end_time) {
+    long seconds = end_time->tv_sec - start_time->tv_sec;
+    long nanoseconds = end_time->tv_nsec - start_time->tv_nsec;
+
+    if (nanoseconds < 0) {
+        seconds--;
+        nanoseconds += 1000000000; // Add 1 billion nanoseconds (1 second)
+    }
+
+    long millis = nanoseconds/(1000 * 1000);
+    printf("%s took = %ld secs and %ld nanos \n", what, seconds, nanoseconds);
+}
 
 int main(int argc, char** argv) {
     // Obtain reference for calling Kotlin/Native functions
@@ -10,46 +25,77 @@ int main(int argc, char** argv) {
     lib->DisposeString(response);
 
     ////  libnetchdf_kref_com_sunya_cdm_api_Netchdf (*openNetchdfFileC)(const char* filename);
-    const char* filename = "simple_xy.nc";
+    const char* filename = "/home/stormy/dev/github/netcdf/netchdf/core/src/commonTest/data/netcdf4/tiling.nc4";
+    // const char* filename = "/home/all/testdata/cdmUnitTest/formats/netcdf4/espresso_his_20130913_0000_0007.nc";
     libnetchdf_kref_com_sunya_cdm_api_Netchdf netchdf = lib->kotlin.root.com.sunya.netchdfc.openNetchdfFile(filename);
 
     const char* cdl = lib->kotlin.root.com.sunya.cdm.api.cdl(netchdf);
+
     printf("file %s\n", filename);
     printf("%s\n", cdl);
     lib->DisposeString(cdl);
 
-    libnetchdf_kref_com_sunya_netchdfc_VariableC variableC = lib->kotlin.root.com.sunya.netchdfc.openVariable(netchdf, "data");
+    const char* varname = "Turbulence_SIGMET_AIRMET";
+    // const char* varname = "vbar"; //
+    libnetchdf_kref_com_sunya_netchdfc_VariableC variableC = lib->kotlin.root.com.sunya.netchdfc.openVariable(netchdf, varname);
     printf("get_varName=%s\n", lib->kotlin.root.com.sunya.netchdfc.VariableC.get_varName(variableC));
     int rank = lib->kotlin.root.com.sunya.netchdfc.VariableC.get_rank(variableC);
     printf("rank=%d\n", rank);
 
     void *vshape = lib->kotlin.root.com.sunya.netchdfc.VariableC.get_pinnedShape(variableC);
     long *shape = (long *) vshape;
+    printf("varshape\n");
     for (int idx=0; idx < rank; idx++) {
         printf(" %d == %ld\n", idx, *(shape+idx));
     }
     printf("\n");
 
-    libnetchdf_kref_com_sunya_netchdfc_VariableData variableData = lib->kotlin.root.com.sunya.netchdfc.readVariable(netchdf, "data");
-    printf("get_varName=%s\n", lib->kotlin.root.com.sunya.netchdfc.VariableData.get_varName(variableData));
-    int nelems = lib->kotlin.root.com.sunya.netchdfc.VariableData.get_nelems(variableData);
+    struct timeval timecheck;
+    gettimeofday(&timecheck, NULL);
+    long start = (long)timecheck.tv_sec * 1000 + (long)timecheck.tv_usec / 1000;
+
+    /*************** heres the meat */
+    libnetchdf_kref_com_sunya_netchdfc_VariableDataFloat variableData = lib->kotlin.root.com.sunya.netchdfc.readVariableFloat(netchdf, varname);
+
+    gettimeofday(&timecheck, NULL);
+    long end = (long)timecheck.tv_sec * 1000 + (long)timecheck.tv_usec / 1000;
+    printf("%ld milliseconds elapsed\n", (end - start));
+
+/*
+    printf("readVariable=%s\n", lib->kotlin.root.com.sunya.netchdfc.VariableDataFloat.get_varName(variableData));
+    int nelems = lib->kotlin.root.com.sunya.netchdfc.VariableDataFloat.get_nelems(variableData);
     printf("nelems=%d\n", nelems);
 
-    void *vdshape = lib->kotlin.root.com.sunya.netchdfc.VariableData.get_pinnedShape(variableData);
+    void *vdshape = lib->kotlin.root.com.sunya.netchdfc.VariableDataFloat.get_pinnedShape(variableData);
     int *dshape = (int *) vdshape;
     for (int idx=0; idx < rank; idx++) {
         printf(" %d == %d\n", idx, *(dshape+idx));
     }
-    printf("\n");
+    printf("\n"); */
 
-    void *vpdata = lib->kotlin.root.com.sunya.netchdfc.VariableData.get_pinnedData(variableData);
-    int *pdata = (int *) vpdata;
+    int nelems = lib->kotlin.root.com.sunya.netchdfc.VariableDataFloat.get_nelems(variableData);
+
+    void *vpdata = lib->kotlin.root.com.sunya.netchdfc.VariableDataFloat.get_pinnedData(variableData);
+    float *pdata = (float *) vpdata;
+    double sum = 0.0;
+    int count = 0;
     for (int idx=0; idx < nelems; idx++) {
-        printf(" %d == %d\n", idx, *(pdata+idx));
+        float value = *(pdata+idx);
+        // if (idx < 10) printf(" %d %g\n", idx, value);
+        // if (isfinite(value) == 0) printf(" %d %g\n", idx, value);
+        if (isfinite(value) != 0) sum += value;
+        // if (idx % 100000 == 0) printf("sum = %g\n", sum);
+        // if (idx % 100000 == 0) printf("sum = %g\n", sum);
+        count++;
     }
-    printf("\n");
+    end = (long)timecheck.tv_sec * 1000 + (long)timecheck.tv_usec / 1000;
+    printf("%ld milliseconds elapsed\n", (end - start));
+
+    printf("total = %g\n", sum);
+    printf("count elements = %d\n", count);
 
     return 0;
+}
 
 /*
     libnetchdf_kref_com_sunya_cdm_api_Variable variable = lib->kotlin.root.com.sunya.netchdfc.findVariable(netchdf, "data");
@@ -86,4 +132,3 @@ int main(int argc, char** argv) {
 
     return 0;
     */
-}
