@@ -24,7 +24,7 @@ subprojects {
 //       and use the new version.
 tasks.wrapper {
     distributionType = Wrapper.DistributionType.BIN
-    gradleVersion = "8.14"
+    gradleVersion = "9.0.0"
 }
 
 
